@@ -1,4 +1,6 @@
-#nogotofail
+#noseyparker
+
+Noseyparker is an Android mobile application testing tool for network based privacy issues.
 
 
 Nogotofail is a network security testing tool designed to help developers and
