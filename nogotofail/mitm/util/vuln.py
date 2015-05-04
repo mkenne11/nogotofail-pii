@@ -30,3 +30,6 @@ VULN_WEAK_CIPHER = "weakcipher"
 VULN_WEAK_TLS_VERSION = "weaktlsversion"
 VULN_TLS_SERVER_KEY_REPLACEMENT = "serverkeyreplace"
 VULN_TLS_SUPERFISH_TRUSTED = "superfishca"
+# Privacy vuln types for notification
+VULN_PII_QUERY_STRING_DETECTION = "piiquerystringdetection"
+VULN_PII_HTTP_HEADER_DETECTION = "piihttpheaderdetection"

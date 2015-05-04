@@ -21,9 +21,10 @@ import sys
 import ssl
 import time
 import urllib
+import ast
 
 from nogotofail.mitm.connection import handlers
-from nogotofail.mitm.util import close_quietly
+from nogotofail.mitm.util import close_quietly, truncate
 
 Application = namedtuple("Application", ["package", "version"])
 
@@ -228,6 +229,9 @@ class Client(object):
         data = self.info.get("Data-Attacks", self.server.default_data)
         data_str = ",".join([attack.name for attack in data])
         self.socket.sendall("Data-Attacks: %s\n" % data_str)
+        #TODO: Determine if the Personal-Ids dictionary needs to be passed back
+        # to the client.
+
         supported_data = ",".join([
             attack
             for attack in handlers.data.handlers.map])
@@ -235,6 +239,9 @@ class Client(object):
         self.socket.sendall("\n")
 
     def _parse_headers(self, lines):
+        import base64
+        import itertools
+
         raw_headers = [line.split(":", 1) for line in lines[1:]]
         headers = {entry.strip(): header.strip()
                    for entry, header in raw_headers}
@@ -267,10 +274,80 @@ class Client(object):
                     if attack in
                     handlers.data.handlers.map]
 
+        if ("Personal-Ids" in headers):
+            # Define Personal IDs container
+            client_info["Personal-Ids"] = {}
+            personal_ids_base64 = {}
+            personal_ids_urlencoded = {}
+
+            # Convert Personal IDs string to a dictionary
+            personal_ids = ast.literal_eval(headers["Personal-Ids"])
+            # Add the personal_ids dictionary to the client_info dictionary
+            client_info["Personal-Ids"]["plain-text"] = personal_ids
+
+            # Create base64 dictionary of personal IDs
+            for id_key, id_value in personal_ids.iteritems():
+                # Add a base64 version of ID to dictionary
+                personal_ids_base64[id_key + " (base64)"] = base64.b64encode(id_value)
+            client_info["Personal-Ids"]["base64"] = personal_ids_base64
+
+            # Create url encoded dictionary of personal IDs
+            for id_key, id_value in personal_ids.iteritems():
+                # Add a url encoded version of ID to dictionary if its different
+                # from the plain text version
+                id_value_urln = urllib.quote_plus(id_value)
+                if (id_value != id_value_urln):
+                    personal_ids_urlencoded[id_key + " (url encoded)"] = id_value_urln
+            client_info["Personal-Ids"]["url-encoded"] = personal_ids_urlencoded
+
+            # TODO: Think if HTML encoding is needed for PII information.
+            # e.g. ',",&,<,> characters.
+        if ("Personal-Details" in headers):
+            # Define Personal Details containers
+            client_info["Personal-Details"] = {}
+            personal_details = {}
+            personal_details_base64 = {}
+            personal_details_urlencoded = {}
+
+            # Convert Personal Details string to a dictionary
+            personal_details = ast.literal_eval(headers["Personal-Details"])
+            # If the device location was received format as a number to 3
+            # decimal places.
+            if (personal_details["device_location"]):
+                device_location = personal_details["device_location"]
+                personal_details["device_location"]["longitude"] = \
+                    truncate(float(device_location["longitude"]), 2)
+                personal_details["device_location"]["latitude"] = \
+                    truncate(float(device_location["latitude"]), 2)
+            client_info["Personal-Details"]["plain-text"] = personal_details
+
+            # Create base64 dictionary of personal details
+            for id_key, id_value in personal_details.iteritems():
+                # Add a base64 version of ID to dictionary, if the item
+                # isn't a sub-dictionary.
+                if (id_key != "device_location"):
+                    personal_details_base64[id_key + " (base64)"] = \
+                        base64.b64encode(id_value)
+            #if (personal_details_base64):
+            client_info["Personal-Details"]["base64"] = personal_details_base64
+
+            # Create url encoded dictionary of personal details
+            for id_key, id_value in personal_details.iteritems():
+                # Add a url encoded version of ID to dictionary if its different
+                # from the plain text version & if the item it isn't a
+                # sub-dictionary.
+                if (id_key != "device_location"):
+                    id_value_urln = urllib.quote_plus(id_value)
+                    if (id_value != id_value_urln):
+                        personal_details_urlencoded[id_key + \
+                            " (url encoded)"] = id_value_urln
+            #if (personal_details_urlencoded):
+            client_info["Personal-Details"]["url-encoded"] = \
+                personal_details_urlencoded
+
         # Store the raw headers as well in case a handler needs something the
         # client sent in an additional header
         client_info["headers"] = headers
-
         self.info = client_info
 
     def _response_select_fn(self):

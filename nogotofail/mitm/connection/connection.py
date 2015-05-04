@@ -600,6 +600,16 @@ class BaseConnection(object):
                 break
         self.client_socket.sendall(response)
 
+    # Retrieve personalid.noseyparker collection.
+    def get_personalids(self):
+        """ Retrieve personalid.noseyparker collection from server
+        variable if it is set.
+        """
+        if (self.server.personalids):
+            return self.server.personalids
+        else:
+            return {}
+
 class RedirectConnection(BaseConnection):
     """Connection based on getting traffic from iptables redirect rules"""
 
@@ -772,5 +782,3 @@ class SocksConnection(BaseConnection):
             sock.sendall(self._build_error_response(SocksConnection.RESP_GENERAL_ERROR))
             raise ValueError("Unknown ATYP")
         return addr, port
-
-

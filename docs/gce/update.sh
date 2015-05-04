@@ -8,15 +8,21 @@ CONFIG_DIR=/etc/nogotofail
 LOG_DIR=/var/log/nogotofail
 
 # Stop the nogotofail-mitm and other associated services if they're running.
+if (ps ax | grep -v grep | grep nogotofail-mitm > /dev/null) then
 sudo /etc/init.d/nogotofail-mitm stop
+fi
+if (ps ax | grep -v grep | grep dnsmasq > /dev/null) then
 sudo /etc/init.d/dnsmasq stop
+fi
+if (ps ax | grep -v grep | grep openvpn > /dev/null) then
 sudo /etc/init.d/openvpn stop
-
-# Remove compiled python libraries i.e. *.pyc files.
+fi
+# Remove Python files and compiled versions i.e. *.py and *.pyc files.
 # TODO: Find a more elegant method for uninstalling a Python program.
 #rm -rf $INSTALL_DIR
 #rm -rf $CONFIG_DIR
 #rm -rf $LOG_DIR
+find $INSTALL_DIR -type f -name '*.py' -delete
 find $INSTALL_DIR -type f -name '*.pyc' -delete
 
 # Install toolchain dependencies

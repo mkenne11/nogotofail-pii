@@ -28,6 +28,7 @@ import signal
 import ConfigParser
 import collections
 import sys
+import copy
 
 from nogotofail.mitm.blame import Server as AppBlameServer
 from nogotofail.mitm.connection import Server, RedirectConnection, SocksConnection, TproxyConnection
@@ -40,7 +41,6 @@ EVENT_FORMAT = logging.Formatter("%(message)s")
 logger = logging.getLogger("nogotofail.mitm")
 event_logger = logging.getLogger("event")
 traffic_logger = logging.getLogger("traffic")
-
 
 def build_selector(MITM_all=False):
     def handler_selector(connection, app_blame):
@@ -101,14 +101,49 @@ def build_data_selector(default_handlers, MITM_all, prob_attack=0.5):
         return internal + passive + active
     return data_selector
 
+def get_personal_ids():
 
-def build_server(port, blame, selector, ssl_selector, data_selector, block, ipv6, cls):
+    def personal_ids_selector(connection, app_blame):
+        personal_ids = {}
+        try:
+            if (not app_blame.client_available(connection.client_addr)):
+                return internal + []
+            # Figure out our possible handlers
+            client_info = app_blame.clients.get(connection.client_addr)
+            client_info = client_info.info if client_info else None
+            if client_info:
+                personal_ids = client_info["Personal-Ids"]
+            return personal_ids
+        except Exception as e:
+            logger.exception(str(e))
+            return {}
+
+def get_personal_details():
+
+    def personal_details_selector(connection, app_blame):
+        personal_details = {}
+        try:
+            if (not app_blame.client_available(connection.client_addr)):
+                return internal + []
+            # Figure out our possible handlers
+            client_info = app_blame.clients.get(connection.client_addr)
+            client_info = client_info.info if client_info else None
+            if client_info:
+                personal_details = client_info["Personal-Details"]
+            return personal_details
+        except Exception as e:
+            logger.exception(str(e))
+            return {}
+
+def build_server(port, blame, selector, ssl_selector, data_selector, block,
+    ipv6, cls, specified_personalids={}):
     return Server(port, blame, handler_selector=selector,
                   ssl_handler_selector=ssl_selector,
                   data_handler_selector=data_selector,
                   block_non_clients=block,
                   ipv6=ipv6,
-                  connection_class=cls)
+                  connection_class=cls,
+                  personalids=specified_personalids)
 
 
 def build_blame(port, cert, probability, attacks, data_attacks):
@@ -154,14 +189,30 @@ def parse_args():
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument("-c", "--config")
     args, argv = parser.parse_known_args()
+
     if args.config:
-        config = ConfigParser.SafeConfigParser()
-        config.read(args.config)
-        config = dict(config.items("nogotofail.mitm"))
-        if "attacks" in config:
-            config["attacks"] = config["attacks"].split(" ")
-        if "data" in config:
-            config["data"] = config["data"].split(" ")
+        config = {}
+        configBase = ConfigParser.SafeConfigParser()
+        configBase.read(args.config)
+        has_ngtf_section = configBase.has_section("nogotofail.mitm")
+        has_np_section = configBase.has_section("personalids.noseyparker")
+
+        # Check if "nogotofail.mitm" section exists.
+        if has_ngtf_section:
+            configNgtf = copy.copy(configBase)
+            configNgtf = dict(configNgtf.items("nogotofail.mitm"))
+            if "attacks" in configNgtf:
+                configNgtf["attacks"] = configNgtf["attacks"].split(" ")
+            if "data" in configNgtf:
+                configNgtf["data"] = configNgtf["data"].split(" ")
+            config = configNgtf
+
+        # Check if "noseyparker.mitm" section exists.
+        if has_np_section:
+            configNp = copy.copy(configBase)
+            configNp = dict(configNp.items("personalids.noseyparker"))
+            #config.update(configNp)
+            config["personalids"] = configNp
     else:
         config = {}
 
@@ -216,6 +267,19 @@ def parse_args():
         "Requires support for ip6tables NAT redirect when in redirect mode (iptables > 1.4.17)"),
         default=False, action="store_true")
     parser.add_argument(
+        "--serverssl", help="Run the app blame server with SSL using PEMFILE",
+        metavar="PEMFILE", action="store")
+    parser.add_argument(
+        "--block", help="Block connections with unknown blame info",
+        action="store_true", default=False)
+    parser.add_argument(
+        "--mode", help="Traffic capture mode. Options are " + ", ".join(modes.keys()),
+        choices=modes, metavar="MODE", action="store", default=default_mode)
+
+    parser.add_argument(
+        "--fns1", help="***** Nogotofail functions *****************************",
+        action="store_true", default=False)
+    parser.add_argument(
         "-A", "--attacks",
         help="Connection attacks to run. Supported attacks are " +
         ", ".join(all_attacks),
@@ -226,17 +290,10 @@ def parse_args():
         help="Data attacks to run. Supported attacks are " +
         ", ".join(all_data), choices=handlers.data.handlers.map, nargs="+",
         metavar="ATTACK", action="store", default=default_data)
-    parser.add_argument(
-        "--serverssl", help="Run the app blame server with SSL using PEMFILE",
-        metavar="PEMFILE", action="store")
-    parser.add_argument(
-        "--block", help="Block connections with unknown blame info",
-        action="store_true", default=False)
-    parser.add_argument(
-        "--mode", help="Traffic capture mode. Options are " + ", ".join(modes.keys()),
-        choices=modes, metavar="MODE", action="store", default=default_mode)
+
     parser.set_defaults(**config)
     return parser.parse_args(argv)
+
 
 def sigterm_handler(num, frame):
     """Gracefully exit on a SIGTERM.
@@ -286,7 +343,6 @@ def setup_logging(args):
     logger.setLevel(logging.DEBUG)
 
 def run():
-
     args = parse_args()
     setup_logging(args)
 
@@ -296,8 +352,22 @@ def run():
     data_cls = [handlers.data.handlers.map[name] for name in args.data]
     ssl_selector = build_ssl_selector(attack_cls, args.probability, args.all)
     data_selector = build_data_selector(data_cls, args.all, prob_attack=args.probability)
+    # Get personal ids collection from client if available
+    personal_ids = get_personal_ids()
+    # Get personal details collection from client if available
+    personal_details = get_personal_details()
+    # Build personal identifiers collection.
+    noseyparker_personalids = args.personalids
 
     logger.info("Starting...")
+
+    try:
+        logger.info("Read config args - " + str(args))
+        logger.info("Personal IDs from client - " + str(personal_ids))
+        logger.info("Personal Details from client - " + str(personal_details))
+    except Exception as e:
+        logger.exception(str(e))
+
     try:
         signal.signal(signal.SIGTERM, sigterm_handler)
         mode = modes[args.mode]
@@ -310,7 +380,8 @@ def run():
         server = (
             build_server(
                 args.port, blame, selector, ssl_selector,
-                data_selector, args.block, args.ipv6, mode.cls))
+                data_selector, args.block, args.ipv6, mode.cls,
+                noseyparker_personalids))
         blame.start_listening()
         server.start_listening()
         # Run the main loop

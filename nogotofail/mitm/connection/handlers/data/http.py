@@ -21,6 +21,8 @@ from nogotofail.mitm.connection.handlers.data import DataHandler
 from nogotofail.mitm.connection.handlers.store import handler
 from nogotofail.mitm.event import connection
 import re
+import urlparse
+import itertools
 
 
 @handler.passive(handlers)
@@ -379,3 +381,176 @@ class DisableCDCPEncryption(HttpDetectionHandler):
         path = http.path
         if host == "check.googlezip.net" and path == "/connect":
             self.connection.close()
+
+@handler.passive(handlers)
+class PIIQueryStringDetectionHandler(DataHandler):
+    """Check if PII appears in plain text http traffic http query strings.
+    """
+    name = "piiquerystringdetection"
+    description = "Detect PII in plain text http query string"
+
+    def on_request(self, request):
+        client = self.connection.app_blame.clients.get(self.connection.client_addr)
+        if (client):
+            try:
+                ### Search request query string for PII
+                ###
+                # Merge plain-text, base 64 and url encoded versions of personal
+                # IDs into one dictionary.
+                personal_ids = client.info["Personal-Ids"]["plain-text"]
+                base64_personal_ids = client.info["Personal-Ids"]["base64"]
+                urlencoded_personal_ids = client.info["Personal-Ids"]["url-encoded"]
+                perm_personal_ids = {k:v for d in
+                    (personal_ids, base64_personal_ids, urlencoded_personal_ids)
+                    for k, v in d.iteritems()}
+                #self.log(logging.ERROR, "perm_personal_ids - %s."
+                #    % perm_personal_ids)
+
+                http = util.http.parse_request(request)
+                if not (http and not http.error_code):
+                    return request
+                host = http.headers.get("host", self.connection.server_addr)
+                url = host + http.path
+                # Extract query string from request url.
+                url_parts = urlparse.urlparse(url)
+                query_string = url_parts[4]
+
+                # TODO: Check for query string before proceeding.
+                # Find the list of personal IDs values in the request query string.
+                personal_ids_found = [k for k, v in
+                    perm_personal_ids.iteritems() if v in query_string]
+
+                ### Search request query string for Personal details
+                ###
+                location_in_query_string = False
+                personal_details = client.info["Personal-Details"]["plain-text"]
+                if (personal_details):
+                    #self.log(logging.DEBUG, "piiquerystringdetection: " + \
+                    #    "Personal Details [PT] - %s." \
+                    #    % client.info["Personal-Details"]["plain-text"])
+                    if (personal_details["device_location"]):
+                        longitude = personal_details["device_location"]["longitude"]
+                        latitude = personal_details["device_location"]["latitude"]
+                        #self.log(logging.DEBUG, "piiquerystringdetection: " + \
+                        #    "Device location [formatted] - long:%s; lat:%s." \
+                        #    % (longitude, latitude))
+                        if (longitude in query_string and \
+                            latitude in query_string):
+                                location_in_query_string = True
+
+                ### If PII found in query string raise a notification.
+                ###
+                if (personal_ids_found):
+                    self.log(logging.ERROR,
+                        "NP: Personal IDs found in request query string - %s."
+                        % personal_ids_found)
+                    self.log_event(
+                        logging.ERROR,
+                        connection.AttackEvent(
+                            self.connection, self.name, True, url))
+                    self.connection.vuln_notify(
+                        util.vuln.VULN_PII_QUERY_STRING_DETECTION)
+                if (location_in_query_string):
+                    self.log(logging.ERROR,
+                        "NP: Location found in request query string " + \
+                        "(longitude, latitude) - ['%s', '%s']" \
+                        % (longitude, latitude))
+                    self.log_event(
+                        logging.ERROR,
+                        connection.AttackEvent(
+                            self.connection, self.name, True, url))
+                    self.connection.vuln_notify(
+                        util.vuln.VULN_PII_QUERY_STRING_DETECTION)
+            except Exception as e:
+                self.log(logging.ERROR, str(e))
+
+
+@handler.passive(handlers)
+class PIIHTTPHeaderDetectionHandler(HttpDetectionHandler):
+    """Check if PII appears in plain text http (non-https) page headers.
+    """
+    name = "piihttpheaderdetection"
+    description = "Detect pii in plain text http headers"
+
+    def on_http(self, http):
+        # Search http header text for PII
+        client = self.connection.app_blame.clients.get(self.connection.client_addr)
+        #self.log(logging.DEBUG, "piihttpheaderdetection: Client headers - %s." \
+        #    % client.info["headers"])
+        if (client):
+            try:
+                ### Search http header text for personal IDs
+                request_headers = dict(http.headers)
+                host = request_headers.get("host", self.connection.server_addr)
+                url = host + http.path
+
+                #self.log(logging.DEBUG, "piihttpheaderdetection: " +
+                #    "on_http request headers - %s. " % request_headers )
+                ignore_headers = ["host", "connection", "content-length", "accept",
+                    "user-agent", "content-type", "accept-encoding", "accept-language",
+                    "accept-charset"]
+
+                valid_header_text = ""
+                valid_headers = {k:v for k, v in request_headers.iteritems()
+                    if k not in ignore_headers}
+
+                ### If valid headers, search request query string for PII
+                ###
+                if (valid_headers):
+                    valid_header_keys = valid_headers.keys()
+                    valid_header_text = str(valid_headers.values()).translate(None,"[']")
+                    self.log(logging.DEBUG, "piihttpheaderdetection: Remaining " +
+                        "valid http headers - %s." % valid_header_keys )
+
+                    personal_ids = client.info["Personal-Ids"]["plain-text"]
+                    base64_personal_ids = client.info["Personal-Ids"]["base64"]
+                    perm_personal_ids = {k:v for d in
+                        (personal_ids, base64_personal_ids)
+                        for k, v in d.iteritems()}
+
+                    ### Search for personal ID values in the request headers.
+                    personal_ids_found = [k for k, v in perm_personal_ids.iteritems()
+                        if v in valid_header_text]
+
+                    ### Search for location values in the request headers.
+                    location_in_headers = False
+                    personal_details = client.info["Personal-Details"]["plain-text"]
+                    if (personal_details):
+                        #self.log(logging.DEBUG, "piihttpheaderdetection: " + \
+                        #    "Personal Details [PT] - %s." \
+                        #    % client.info["Personal-Details"]["plain-text"])
+                        if (personal_details["device_location"]):
+                            longitude = personal_details["device_location"]["longitude"]
+                            latitude = personal_details["device_location"]["latitude"]
+                            #self.log(logging.DEBUG, "piihttpheaderdetection: " + \
+                            #    "Device location [formatted] - long:%s; lat:%s." \
+                            #    % (longitude, latitude))
+                            if (longitude in valid_header_text and \
+                                latitude in valid_header_text):
+                                    location_in_headers = True
+
+                    ### If PII found in headers raise a notification.
+                    ###
+                    if (personal_ids_found):
+                        self.log(logging.ERROR,
+                            "NP: Personal IDs found in request headers - %s."
+                            % personal_ids_found)
+                        self.log_event(
+                            logging.ERROR,
+                            connection.AttackEvent(
+                                self.connection, self.name, True, url))
+                        self.connection.vuln_notify(
+                            util.vuln.VULN_PII_HTTP_HEADER_DETECTION)
+                    if (location_in_headers):
+                        self.log(logging.ERROR,
+                            "NP: Location found in request headers " + \
+                            "(longitude, latitude) - ['%s', '%s']" \
+                            % (longitude, latitude))
+                        self.log_event(
+                            logging.ERROR,
+                            connection.AttackEvent(
+                                self.connection, self.name, True, url))
+                        self.connection.vuln_notify(
+                            util.vuln.VULN_PII_HTTP_HEADER_DETECTION)
+            except Exception as e:
+                self.log(logging.ERROR, str(e))

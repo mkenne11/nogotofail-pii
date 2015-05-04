@@ -30,6 +30,20 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
+// Noseyparker import libraries
+import java.io.IOException;
+import com.google.android.gms.ads.identifier.AdvertisingIdClient;
+import com.google.android.gms.ads.identifier.AdvertisingIdClient.Info;
+import com.google.android.gms.common.GooglePlayServicesNotAvailableException;
+import com.google.android.gms.common.GooglePlayServicesRepairableException;
+
+import android.telephony.TelephonyManager;
+import android.net.wifi.WifiInfo;
+import android.net.wifi.WifiManager;
+import android.location.Criteria;
+import android.location.Location;
+import android.location.LocationManager;
+
 /**
  * {@link PreferenceFragment} with preferences about attacks performed by the MiTM.
  */
@@ -49,6 +63,10 @@ public class AttacksPreferenceFragment extends PreferenceFragment {
     BUNDLED_SUPPORTED_DATA_ATTACK_IDS.add("httpdetection");
     BUNDLED_SUPPORTED_DATA_ATTACK_IDS.add("imagereplace");
     BUNDLED_SUPPORTED_DATA_ATTACK_IDS.add("sslstrip");
+
+    // Noseyparker PII attacks
+    BUNDLED_SUPPORTED_DATA_ATTACK_IDS.add("piiquerystringdetection");
+    BUNDLED_SUPPORTED_DATA_ATTACK_IDS.add("piihttpheaderdetection");
   }
 
   private static final String ATTACK_ENABLED_PREF_KEY_PREFIX = "attack_enabled_";
@@ -177,6 +195,53 @@ public class AttacksPreferenceFragment extends PreferenceFragment {
     return enabledAttackIds;
   }
 
+  /**
+   * Gets the set of client personal and device ids.
+   *
+   * @returns personal ids or {@code null} for default.
+  */
+  public static Set<String> getPersonalIds(Context context) {
+    Set<String> clientPersonalIds = new HashSet<String>();
+
+    String android_id = getAndroidId(context);
+    Info advertising_info = getAdvertisingId(context);
+    String device_id = getDeviceId(context);
+    String mac_address = getMacAddress(context);
+    //Location device_location = getDeviceLocation(context);
+
+    if (android_id != null) {
+      clientPersonalIds.add("'android_id':'" + android_id + "'");
+    }
+    if (advertising_info != null) {
+        clientPersonalIds.add("'google_advertising_id':'" + advertising_info.getId() + "'");
+    }
+    if (device_id != null) {
+      clientPersonalIds.add("'device_id':'" + device_id + "'");
+    }
+    if (mac_address != null) {
+      clientPersonalIds.add("'mac_address':'" + mac_address + "'");
+    }
+    return clientPersonalIds;
+  }
+
+  public static Set<String> getPersonalDetails(Context context) {
+    Set<String> clientPersonalDetails = new HashSet<String>();
+
+    Location device_location = getDeviceLocation(context);
+    if (device_location != null) {
+      String latitude = String.valueOf(device_location.getLatitude());
+      String longitude = String.valueOf(device_location.getLongitude());
+
+      //DecimalFormat precision = new DecimalFormat("0.000");
+      //String latitude = precision.format(device_location.getLatitude());
+      //String longitude = precision.format(device_location.getLongitude());
+
+      clientPersonalDetails.add("'device_location': {'latitude':'" + latitude + "', " +
+              "'longitude':'" + longitude + "'}");
+    }
+    return clientPersonalDetails;
+  }
+
   private static String getAttackEnabledPreferenceKey(String attackId) {
     return ATTACK_ENABLED_PREF_KEY_PREFIX + attackId;
   }
@@ -253,5 +318,84 @@ public class AttacksPreferenceFragment extends PreferenceFragment {
       return true;
     }
     return false;
+  }
+
+  // Noseyparker property methods
+  /**
+   * Properties which return client personal and device ids.
+  */
+  private static String getAndroidId(Context context) {
+      String android_id =
+              Secure.getString(context.getContentResolver(), Secure.ANDROID_ID);
+      return android_id;
+  }
+
+  private static Info getAdvertisingId(Context context) {
+      Info advertising_info = null;
+      try {
+          advertising_info = AdvertisingIdClient.getAdvertisingIdInfo(context);
+
+      } catch (IOException e) {
+          // Unrecoverable error connecting to Google Play services (e.g.,
+          // the old version of the service doesn't support getting AdvertisingId).
+
+      //} catch (GooglePlayServicesAvailabilityException e) {
+      // Encountered a recoverable error connecting to Google Play services.
+
+      } catch (GooglePlayServicesRepairableException e) {
+          // Encountered a recoverable error connecting to Google Play services.
+
+      } catch (GooglePlayServicesNotAvailableException e) {
+          // Google Play services is not available entirely.
+      }
+      //final String advertising_id = advertising_info.getId();
+      //final boolean ad_tracking_limited = advertising_info.isLimitAdTrackingEnabled();
+      return advertising_info;
+  }
+
+  private static String getDeviceId(Context context) {
+      //Retrieve a reference to an instance of TelephonyManager
+      TelephonyManager telephonyManager =
+              (TelephonyManager)context.getSystemService(Context.TELEPHONY_SERVICE);
+      // Fetch the device's unique ID if it exists.
+      // Note. This varies depending on network e.g. IMEI for GSM, MEID/ESN for CDMA.
+      String device_id = telephonyManager.getDeviceId();
+      if (device_id == null){
+        return null;
+      }
+      else {
+        return device_id;
+      }
+  }
+
+  private static String getMACAddress (Context context) {
+      WifiManager wifi_manager = (WifiManager)context.getSystemService(Context.WIFI_SERVICE);
+      WifiInfo wifi_info = wifi_manager.getConnectionInfo();
+
+      // Fetch the device's WiFi MAC address.
+      String mac_address = wifi_info.getMacAddress();
+      if (mac_address == null) {
+          return null;
+      }
+      else {
+        return mac_address;
+      }
+  }
+
+  private static Location getDeviceLocation (Context context) {
+    Location last_known_location = null;
+    try {
+      LocationManager location_manager =
+              (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
+
+      Criteria criteria = new Criteria();
+      criteria.setAccuracy(Criteria.ACCURACY_FINE);
+      String location_provider = location_manager.getBestProvider(criteria, false);
+      last_known_location = location_manager.getLastKnownLocation(location_provider);
+    }
+    catch (Exception e) {
+
+    }
+    return last_known_location;
   }
 }

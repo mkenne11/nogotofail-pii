@@ -32,7 +32,7 @@ class Server:
                  handler_selector=default_connection_selector,
                  ssl_handler_selector=default_ssl_connection_selector,
                  data_handler_selector=default_data_selector,
-                 block_non_clients=False, ipv6=False):
+                 block_non_clients=False, ipv6=False, personalids={}):
         self.kill = False
         self.port = port
         self.read_fds = set()
@@ -50,6 +50,7 @@ class Server:
         self.block_non_clients = block_non_clients
         self.ipv6 = ipv6
         self.last_reap = time.time()
+        self.personalids = personalids
 
     def start_listening(self):
         self._local_server_sockets = self._create_server_sockets()
