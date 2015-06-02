@@ -99,8 +99,8 @@ public class RouterConnectionHandler implements RouterSocketClient.ConnectionHan
   private static final String HEADER_SUPPORTED_DATA_ATTACKS = "Supported-Data-Attacks";
   private static final String HEADER_SUPPORTED_DATA_ATTACKS_LOWER_CASE =
       HEADER_SUPPORTED_DATA_ATTACKS.toLowerCase(Locale.US);
-  private static final String HEADER_PERSONAL_IDS = "Personal-Ids";
-  private static final String HEADER_PERSONAL_DETAILS = "Personal-Details";
+  private static final String HEADER_PII_IDENTIFIERS = "PII-Identifiers";
+  private static final String HEADER_PII_DETAILS = "PII-Details";
 
   /**
    * Timeout (milliseconds) for a read operation waiting for a command from the server. The server
@@ -176,13 +176,13 @@ public class RouterConnectionHandler implements RouterSocketClient.ConnectionHan
           AttacksPreferenceFragment.getPersonalIds(mContext);
       if (requestedPersonalIds != null) {
         writeHandshakeRequestHeader(
-            out, HEADER_PERSONAL_IDS, "{" + TextUtils.join(",", requestedPersonalIds) + "}");
+            out, HEADER_PII_IDENTIFIERS, "{" + TextUtils.join(",", requestedPersonalIds) + "}");
       }
       Set <String> requestedPersonalDetails =
         AttacksPreferenceFragment.getPersonalDetails(mContext);
       if (requestedPersonalDetails != null) {
         writeHandshakeRequestHeader(
-          out, HEADER_PERSONAL_DETAILS, "{" + TextUtils.join(",", requestedPersonalDetails) + "}");
+          out, HEADER_PII_DETAILS, "{" + TextUtils.join(",", requestedPersonalDetails) + "}");
       }
       out.write("\r\n");
       out.flush();

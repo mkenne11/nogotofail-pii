@@ -56,6 +56,7 @@ class Client(object):
         self.address = self.socket.getpeername()[0]
         self.logger = logging.getLogger("nogotofail.mitm")
         self._handshake_completed = False
+        self.combined_pii = {}
 
     @property
     def available(self):
@@ -239,9 +240,6 @@ class Client(object):
         self.socket.sendall("\n")
 
     def _parse_headers(self, lines):
-        import base64
-        import itertools
-
         raw_headers = [line.split(":", 1) for line in lines[1:]]
         headers = {entry.strip(): header.strip()
                    for entry, header in raw_headers}
@@ -274,43 +272,28 @@ class Client(object):
                     if attack in
                     handlers.data.handlers.map]
 
-        if ("Personal-Ids" in headers):
+        if ("PII-Identifiers" in headers):
             # Define Personal IDs container
-            client_info["Personal-Ids"] = {}
+            client_info["PII-Identifiers"] = {}
             personal_ids_base64 = {}
             personal_ids_urlencoded = {}
 
             # Convert Personal IDs string to a dictionary
-            personal_ids = ast.literal_eval(headers["Personal-Ids"])
+            personal_ids = ast.literal_eval(headers["PII-Identifiers"])
             # Add the personal_ids dictionary to the client_info dictionary
-            client_info["Personal-Ids"]["plain-text"] = personal_ids
-
-            # Create base64 dictionary of personal IDs
-            for id_key, id_value in personal_ids.iteritems():
-                # Add a base64 version of ID to dictionary
-                personal_ids_base64[id_key + " (base64)"] = base64.b64encode(id_value)
-            client_info["Personal-Ids"]["base64"] = personal_ids_base64
-
-            # Create url encoded dictionary of personal IDs
-            for id_key, id_value in personal_ids.iteritems():
-                # Add a url encoded version of ID to dictionary if its different
-                # from the plain text version
-                id_value_urln = urllib.quote_plus(id_value)
-                if (id_value != id_value_urln):
-                    personal_ids_urlencoded[id_key + " (url encoded)"] = id_value_urln
-            client_info["Personal-Ids"]["url-encoded"] = personal_ids_urlencoded
+            client_info["PII-Identifiers"]["plain-text"] = personal_ids
 
             # TODO: Think if HTML encoding is needed for PII information.
             # e.g. ',",&,<,> characters.
-        if ("Personal-Details" in headers):
+        if ("PII-Details" in headers):
             # Define Personal Details containers
-            client_info["Personal-Details"] = {}
+            client_info["PII-Details"] = {}
             personal_details = {}
             personal_details_base64 = {}
             personal_details_urlencoded = {}
 
             # Convert Personal Details string to a dictionary
-            personal_details = ast.literal_eval(headers["Personal-Details"])
+            personal_details = ast.literal_eval(headers["PII-Details"])
             # If the device location was received format as a number to 3
             # decimal places.
             if (personal_details["device_location"]):
@@ -319,36 +302,15 @@ class Client(object):
                     truncate(float(device_location["longitude"]), 2)
                 personal_details["device_location"]["latitude"] = \
                     truncate(float(device_location["latitude"]), 2)
-            client_info["Personal-Details"]["plain-text"] = personal_details
-
-            # Create base64 dictionary of personal details
-            for id_key, id_value in personal_details.iteritems():
-                # Add a base64 version of ID to dictionary, if the item
-                # isn't a sub-dictionary.
-                if (id_key != "device_location"):
-                    personal_details_base64[id_key + " (base64)"] = \
-                        base64.b64encode(id_value)
-            #if (personal_details_base64):
-            client_info["Personal-Details"]["base64"] = personal_details_base64
-
-            # Create url encoded dictionary of personal details
-            for id_key, id_value in personal_details.iteritems():
-                # Add a url encoded version of ID to dictionary if its different
-                # from the plain text version & if the item it isn't a
-                # sub-dictionary.
-                if (id_key != "device_location"):
-                    id_value_urln = urllib.quote_plus(id_value)
-                    if (id_value != id_value_urln):
-                        personal_details_urlencoded[id_key + \
-                            " (url encoded)"] = id_value_urln
-            #if (personal_details_urlencoded):
-            client_info["Personal-Details"]["url-encoded"] = \
-                personal_details_urlencoded
-
+            client_info["PII-Details"]["plain-text"] = personal_details
+            
         # Store the raw headers as well in case a handler needs something the
         # client sent in an additional header
         client_info["headers"] = headers
         self.info = client_info
+
+        # Create and store combined client and server PII parameters.
+        self.combined_pii = self.combine_pii_items()
 
     def _response_select_fn(self):
         try:
@@ -381,12 +343,102 @@ class Client(object):
             self.logger.debug("Blame: Response for unknown txid %d from %s", txid, self.address)
 
 
+    ### Noseyparker methods
+
+    # Create combined collection of client and server config pii parameters
+    def combine_pii_items(self):
+        import base64
+        import itertools
+        #import urllib
+
+        combined_pii = {}
+        try:
+            ### Build combined PII identifier collections.
+            combined_pii["identifiers"] = {}
+
+            combined_pii["identifiers"]["plain-text"] = \
+                self.info["PII-Identifiers"]["plain-text"]
+            combined_pii["identifiers"]["base64"] = {}
+            combined_pii["identifiers"]["url-encoded"] = {}
+
+            personal_ids = combined_pii["identifiers"]["plain-text"]
+            personal_ids_base64 = {}
+            personal_ids_urlencoded = {}
+
+            # Create base64 dictionary of PII identifiers
+            for id_key, id_value in personal_ids.iteritems():
+                # Add a base64 version of ID to dictionary
+                personal_ids_base64[id_key + " (base64)"] = base64.b64encode(id_value)
+            combined_pii["identifiers"]["base64"] = personal_ids_base64
+
+            # Create url encoded dictionary of PII identifiers
+            for id_key, id_value in personal_ids.iteritems():
+                # Add a url encoded version of ID to dictionary if its different
+                # from the plain text version
+                id_value_urln = urllib.quote_plus(id_value)
+                if (id_value != id_value_urln):
+                    personal_ids_urlencoded[id_key + " (url encoded)"] = id_value_urln
+            combined_pii["identifiers"]["url-encoded"] = personal_ids_urlencoded
+
+            ### Build combined PII detail collections.
+            config_pii_details = self.server.pii["details"]
+            combined_pii["details"] = {}
+
+            combined_pii["details"]["plain-text"] = \
+                self.info["PII-Details"]["plain-text"]
+            combined_pii["details"]["base64"] = {}
+            combined_pii["details"]["url-encoded"] = {}
+
+            # Add each of the server (config) PII detail item to the combine
+            # PII collection. Overwrite value with server config version if
+            # any conflict.
+            for id_key, id_value in config_pii_details.iteritems():
+            #if (id_key not in personal_details.keys()):
+                combined_pii["details"]["plain-text"][id_key] = id_value
+
+            personal_details = combined_pii["details"]["plain-text"]
+            personal_details_base64 = {}
+            personal_details_urlencoded = {}
+            #device_location = \
+            #    client_info["PII-Details"]["plain-text"]["device_location"]
+
+            #self.logger.debug(" *** Method combine_pii_items(): " +
+            #    "personal_details.iteritems - %s" % str(personal_details))
+            # Create base64 dictionary of PII details
+            for id_key, id_value in personal_details.iteritems():
+                # Add a base64 version of ID to dictionary, if the item
+                # isn't a sub-dictionary.
+                if (id_key != "device_location"):
+                    personal_details_base64[id_key + " (base64)"] = \
+                        base64.b64encode(id_value)
+            combined_pii["details"]["base64"] = personal_details_base64
+
+            # Create url encoded dictionary of PII details
+            for id_key, id_value in personal_details.iteritems():
+                # Add a url encoded version of ID to dictionary if its different
+                # from the plain text version & if the item it isn't a
+                # sub-dictionary.
+                if (id_key != "device_location"):
+                    id_value_urln = urllib.quote_plus(id_value)
+                    if (id_value != id_value_urln):
+                        personal_details_urlencoded[id_key + \
+                            " (url encoded)"] = id_value_urln
+            combined_pii["details"]["url-encoded"] = personal_details_urlencoded
+
+            # TODO: Think if HTML encoding is needed for PII information.
+            # e.g. ',",&,<,> characters.
+        except Exception as e:
+            self.logger.debug(" Error in method combine_pii_items(): %s." % str(e))
+        return combined_pii
+
+
 class Server:
     """Server for managing connections to the connection blaming app on devices."""
     port = None
     clients = None
 
-    def __init__(self, port, cert, default_prob, default_attacks, default_data):
+    def __init__(self, port, cert, default_prob, default_attacks, default_data,
+        config_pii):
         self.txid = 0
         self.kill = False
         self.port = port
@@ -398,6 +450,8 @@ class Server:
         self.fd_map = {}
         self.logger = logging.getLogger("nogotofail.mitm")
         self.server_socket = None
+        # Server config pii parameters
+        self.pii = config_pii
 
     def start_listening(self):
         self.server_socket = socket.socket()
@@ -530,3 +584,12 @@ class Server:
                 client.close()
             except:
                 pass
+
+    ### Noseyparker methods
+
+    # Return server config pii parameters.
+    def get_pii(self):
+        if (self.pii):
+            return self.pii
+        else:
+            return {}

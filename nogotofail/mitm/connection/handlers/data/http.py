@@ -397,14 +397,18 @@ class PIIQueryStringDetectionHandler(DataHandler):
                 ###
                 # Merge plain-text, base 64 and url encoded versions of personal
                 # IDs into one dictionary.
-                personal_ids = client.info["Personal-Ids"]["plain-text"]
-                base64_personal_ids = client.info["Personal-Ids"]["base64"]
-                urlencoded_personal_ids = client.info["Personal-Ids"]["url-encoded"]
+                combined_pii = client.combined_pii
+                personal_ids = combined_pii["identifiers"]["plain-text"]
+                base64_personal_ids = combined_pii["identifiers"]["base64"]
+                urlencoded_personal_ids = combined_pii["identifiers"]["url-encoded"]
                 perm_personal_ids = {k:v for d in
                     (personal_ids, base64_personal_ids, urlencoded_personal_ids)
                     for k, v in d.iteritems()}
                 #self.log(logging.ERROR, "perm_personal_ids - %s."
                 #    % perm_personal_ids)
+                #server_pii = self.connection.get_pii()
+                #self.log(logging.DEBUG, "Server PII - %s." % server_pii)
+                #self.log(logging.DEBUG, "Client Combined PII - %s." % combined_pii)
 
                 http = util.http.parse_request(request)
                 if not (http and not http.error_code):
@@ -423,11 +427,11 @@ class PIIQueryStringDetectionHandler(DataHandler):
                 ### Search request query string for Personal details
                 ###
                 location_in_query_string = False
-                personal_details = client.info["Personal-Details"]["plain-text"]
+                personal_details = combined_pii["details"]["plain-text"]
                 if (personal_details):
                     #self.log(logging.DEBUG, "piiquerystringdetection: " + \
                     #    "Personal Details [PT] - %s." \
-                    #    % client.info["Personal-Details"]["plain-text"])
+                    #    % combined_pii["details"]["plain-text"])
                     if (personal_details["device_location"]):
                         longitude = personal_details["device_location"]["longitude"]
                         latitude = personal_details["device_location"]["latitude"]
@@ -502,8 +506,13 @@ class PIIHTTPHeaderDetectionHandler(HttpDetectionHandler):
                     self.log(logging.DEBUG, "piihttpheaderdetection: Remaining " +
                         "valid http headers - %s." % valid_header_keys )
 
-                    personal_ids = client.info["Personal-Ids"]["plain-text"]
-                    base64_personal_ids = client.info["Personal-Ids"]["base64"]
+                    combined_pii = client.combined_pii
+                    #personal_ids = client.info["PII-Identifiers"]["plain-text"]
+                    #base64_personal_ids = client.info["PII-Identifiers"]["base64"]
+                    personal_ids = combined_pii["identifiers"]["plain-text"]
+                    base64_personal_ids = combined_pii["identifiers"]["base64"]
+                    # Merge plain-text and base 64 encoded versions of personal
+                    # IDs into one dictionary.
                     perm_personal_ids = {k:v for d in
                         (personal_ids, base64_personal_ids)
                         for k, v in d.iteritems()}
@@ -514,11 +523,11 @@ class PIIHTTPHeaderDetectionHandler(HttpDetectionHandler):
 
                     ### Search for location values in the request headers.
                     location_in_headers = False
-                    personal_details = client.info["Personal-Details"]["plain-text"]
+                    personal_details = combined_pii["details"]["plain-text"]
                     if (personal_details):
                         #self.log(logging.DEBUG, "piihttpheaderdetection: " + \
                         #    "Personal Details [PT] - %s." \
-                        #    % client.info["Personal-Details"]["plain-text"])
+                        #    % combined_pii["details"]["plain-text"])
                         if (personal_details["device_location"]):
                             longitude = personal_details["device_location"]["longitude"]
                             latitude = personal_details["device_location"]["latitude"]
