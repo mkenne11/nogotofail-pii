@@ -101,7 +101,6 @@ class BaseConnection(object):
     select_fds = [], [], []
     _connected = False
     _blame_in_progress = False
-    pii = {}
 
     SSL_TIMEOUT = 2
 
@@ -574,8 +573,6 @@ class BaseConnection(object):
         if success:
             self._applications = info, applications
             self.client_info = self.app_blame.clients[self.client_addr]
-            # Create combined collection of server and client PII items
-            #self.pii = self.combine_pii_items()
         if self._connected:
             self._on_connection_ready()
 
@@ -603,17 +600,7 @@ class BaseConnection(object):
                 break
         self.client_socket.sendall(response)
 
-    # Retrieve personalid.noseyparker collection.
-    def get_pii(self):
-        """ Retrieve personalid.noseyparker collection from server
-        variable if it is set.
-        """
-        if (self.pii):
-            return self.pii
-        else:
-            return {}
 
-    
 class RedirectConnection(BaseConnection):
     """Connection based on getting traffic from iptables redirect rules"""
 

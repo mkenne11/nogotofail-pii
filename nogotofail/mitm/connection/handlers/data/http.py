@@ -424,23 +424,27 @@ class PIIQueryStringDetectionHandler(DataHandler):
                 personal_ids_found = [k for k, v in
                     perm_personal_ids.iteritems() if v in query_string]
 
-                ### Search request query string for Personal details
+                ### Search query string for location
                 ###
                 location_in_query_string = False
+                if (combined_pii["location"]):
+                    longitude = combined_pii["location"]["longitude"]
+                    latitude = combined_pii["location"]["latitude"]
+                    #self.log(logging.DEBUG, "piiquerystringdetection: " + \
+                    #    "Device location [formatted] - long:%s; lat:%s." \
+                    #    % (longitude, latitude))
+                    if (longitude in query_string and latitude in query_string):
+                            location_in_query_string = True
+
+                ### Search query string for Personal details
+                ###
                 personal_details = combined_pii["details"]["plain-text"]
                 if (personal_details):
                     #self.log(logging.DEBUG, "piiquerystringdetection: " + \
                     #    "Personal Details [PT] - %s." \
                     #    % combined_pii["details"]["plain-text"])
-                    if (personal_details["device_location"]):
-                        longitude = personal_details["device_location"]["longitude"]
-                        latitude = personal_details["device_location"]["latitude"]
-                        #self.log(logging.DEBUG, "piiquerystringdetection: " + \
-                        #    "Device location [formatted] - long:%s; lat:%s." \
-                        #    % (longitude, latitude))
-                        if (longitude in query_string and \
-                            latitude in query_string):
-                                location_in_query_string = True
+                    # TODO: Add check for personal details.
+                    iii = 1
 
                 ### If PII found in query string raise a notification.
                 ###
@@ -517,26 +521,32 @@ class PIIHTTPHeaderDetectionHandler(HttpDetectionHandler):
                         (personal_ids, base64_personal_ids)
                         for k, v in d.iteritems()}
 
-                    ### Search for personal ID values in the request headers.
+                    ### Search for personal ID values in the request headers
                     personal_ids_found = [k for k, v in perm_personal_ids.iteritems()
                         if v in valid_header_text]
 
-                    ### Search for location values in the request headers.
+                    ### Search for device location in request headers
+                    ###
                     location_in_headers = False
+                    if (combined_pii["location"]):
+                        longitude = combined_pii["location"]["longitude"]
+                        latitude = combined_pii["location"]["latitude"]
+                        #self.log(logging.DEBUG, "piiquerystringdetection: " + \
+                        #    "Device location [formatted] - long:%s; lat:%s." \
+                        #    % (longitude, latitude))
+                        if (longitude in valid_header_text and \
+                            latitude in valid_header_text):
+                            location_in_headers = True
+
+                    ### Search for PII details in the request headers
+                    ###
                     personal_details = combined_pii["details"]["plain-text"]
                     if (personal_details):
                         #self.log(logging.DEBUG, "piihttpheaderdetection: " + \
                         #    "Personal Details [PT] - %s." \
                         #    % combined_pii["details"]["plain-text"])
-                        if (personal_details["device_location"]):
-                            longitude = personal_details["device_location"]["longitude"]
-                            latitude = personal_details["device_location"]["latitude"]
-                            #self.log(logging.DEBUG, "piihttpheaderdetection: " + \
-                            #    "Device location [formatted] - long:%s; lat:%s." \
-                            #    % (longitude, latitude))
-                            if (longitude in valid_header_text and \
-                                latitude in valid_header_text):
-                                    location_in_headers = True
+                        # TODO: Add check for personal details.
+                        iii = 1
 
                     ### If PII found in headers raise a notification.
                     ###
