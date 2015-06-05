@@ -392,86 +392,137 @@ class PIIQueryStringDetectionHandler(DataHandler):
     def on_request(self, request):
         client = self.connection.app_blame.clients.get(self.connection.client_addr)
         if (client):
-            try:
-                ### Search request query string for PII
-                ###
-                # Merge plain-text, base 64 and url encoded versions of personal
-                # IDs into one dictionary.
-                combined_pii = client.combined_pii
-                personal_ids = combined_pii["identifiers"]["plain-text"]
-                base64_personal_ids = combined_pii["identifiers"]["base64"]
-                urlencoded_personal_ids = combined_pii["identifiers"]["url-encoded"]
-                perm_personal_ids = {k:v for d in
-                    (personal_ids, base64_personal_ids, urlencoded_personal_ids)
-                    for k, v in d.iteritems()}
-                #self.log(logging.ERROR, "perm_personal_ids - %s."
-                #    % perm_personal_ids)
-                #server_pii = self.connection.get_pii()
-                #self.log(logging.DEBUG, "Server PII - %s." % server_pii)
-                #self.log(logging.DEBUG, "Client Combined PII - %s." % combined_pii)
+            #try:
+            # Fetch combined collection of PII
+            combined_pii = client.combined_pii
+            #server_pii = self.connection.get_pii()
+            #self.log(logging.DEBUG, "Server PII - %s." % server_pii)
+            #self.log(logging.DEBUG, "Client Combined PII - %s." % combined_pii)
 
-                http = util.http.parse_request(request)
-                if not (http and not http.error_code):
-                    return request
-                host = http.headers.get("host", self.connection.server_addr)
-                url = host + http.path
-                # Extract query string from request url.
-                url_parts = urlparse.urlparse(url)
-                query_string = url_parts[4]
+            # Get HTTP request details
+            http = util.http.parse_request(request)
+            if not (http and not http.error_code):
+                return request
+            host = http.headers.get("host", self.connection.server_addr)
+            url = host + http.path
+            # Extract query string from request url.
+            url_parts = urlparse.urlparse(url)
+            query_string = url_parts[4]
+            #self.log(logging.DEBUG, "piiquerystringdetection: " + \
+            #    "Request query string - %s." % query_string)
 
-                # TODO: Check for query string before proceeding.
-                # Find the list of personal IDs values in the request query string.
-                personal_ids_found = [k for k, v in
-                    perm_personal_ids.iteritems() if v in query_string]
-
-                ### Search query string for location
-                ###
-                location_in_query_string = False
+            pii_identifiers_found = []
+            pii_location_found = []
+            pii_details_found = []
+            # Check for PII in query stringbefore proceeding.
+            if (query_string):
+                if (combined_pii["identifiers"]):
+                    pii_identifiers_found = \
+                        self.detect_pii_ids_querystring(query_string, \
+                            combined_pii["identifiers"])
                 if (combined_pii["location"]):
-                    longitude = combined_pii["location"]["longitude"]
-                    latitude = combined_pii["location"]["latitude"]
-                    #self.log(logging.DEBUG, "piiquerystringdetection: " + \
-                    #    "Device location [formatted] - long:%s; lat:%s." \
-                    #    % (longitude, latitude))
-                    if (longitude in query_string and latitude in query_string):
-                            location_in_query_string = True
+                    pii_location_found = \
+                        self.detect_pii_location_querystring(query_string, \
+                            combined_pii["location"])
+                if (combined_pii["details"]):
+                    pii_details_found = \
+                        self.detect_pii_details_querystring(query_string, \
+                            combined_pii["details"])
 
-                ### Search query string for Personal details
-                ###
-                personal_details = combined_pii["details"]["plain-text"]
-                if (personal_details):
-                    #self.log(logging.DEBUG, "piiquerystringdetection: " + \
-                    #    "Personal Details [PT] - %s." \
-                    #    % combined_pii["details"]["plain-text"])
-                    # TODO: Add check for personal details.
-                    iii = 1
+            ### If PII found in query string raise a notification
+            ###
+            # If PII identifiers found in query string
+            if (pii_identifiers_found):
+                self.log(logging.ERROR,
+                    "NP: Personal IDs found in request query string - %s."
+                    % pii_identifiers_found)
+                self.log_event(
+                    logging.ERROR, connection.AttackEvent(
+                        self.connection, self.name, True, url))
+                self.connection.vuln_notify(
+                    util.vuln.VULN_PII_QUERY_STRING_DETECTION)
+            # If PII location found in query string
+            if (pii_location_found):
+                self.log(logging.ERROR,
+                    "NP: Location found in request query string " + \
+                    "(longitude, latitude) - %s" \
+                    % pii_location_found)
+                self.log_event(
+                    logging.ERROR,
+                    connection.AttackEvent(
+                        self.connection, self.name, True, url))
+                self.connection.vuln_notify(
+                    util.vuln.VULN_PII_QUERY_STRING_DETECTION)
+            # If PII details found in query string
+            if (pii_details_found):
+                self.log(logging.ERROR,
+                    "NP: Personal details found in request query string - %s."
+                    % pii_details_found)
+                self.log_event(
+                    logging.ERROR,
+                    connection.AttackEvent(
+                        self.connection, self.name, True, url))
+                self.connection.vuln_notify(
+                    util.vuln.VULN_PII_QUERY_STRING_DETECTION)
+            #except Exception as e:
+            #    self.log(logging.ERROR, str(e))
 
-                ### If PII found in query string raise a notification.
-                ###
-                if (personal_ids_found):
-                    self.log(logging.ERROR,
-                        "NP: Personal IDs found in request query string - %s."
-                        % personal_ids_found)
-                    self.log_event(
-                        logging.ERROR,
-                        connection.AttackEvent(
-                            self.connection, self.name, True, url))
-                    self.connection.vuln_notify(
-                        util.vuln.VULN_PII_QUERY_STRING_DETECTION)
-                if (location_in_query_string):
-                    self.log(logging.ERROR,
-                        "NP: Location found in request query string " + \
-                        "(longitude, latitude) - ['%s', '%s']" \
-                        % (longitude, latitude))
-                    self.log_event(
-                        logging.ERROR,
-                        connection.AttackEvent(
-                            self.connection, self.name, True, url))
-                    self.connection.vuln_notify(
-                        util.vuln.VULN_PII_QUERY_STRING_DETECTION)
-            except Exception as e:
-                self.log(logging.ERROR, str(e))
+    def detect_pii_ids_querystring(self, query_string, pii_identifiers):
+        ### Check for personal identifiers in the request query string.
+        ###
+        # Merge plain-text, base 64 and url encoded versions of personal
+        # IDs into one dictionary.
+        pii_identifiers_found = []
+        personal_ids = pii_identifiers["plain-text"]
+        base64_personal_ids = pii_identifiers["base64"]
+        urlencoded_personal_ids = pii_identifiers["url-encoded"]
 
+        perm_personal_ids = {}
+        perm_personal_ids = {k:v for d in
+            (personal_ids, base64_personal_ids, urlencoded_personal_ids)
+            for k, v in d.iteritems()}
+        #self.log(logging.ERROR, "perm_personal_ids - %s."
+        #    % perm_personal_ids)
+
+        # Search query string for personal identifier values.
+        pii_identifiers_found = [k for k, v in
+            perm_personal_ids.iteritems() if v in query_string]
+        return pii_identifiers_found
+
+    def detect_pii_location_querystring(self, query_string, pii_location):
+        ### Check for device location in query string
+        ###
+        pii_location_found = []
+        longitude = pii_location["longitude"]
+        latitude = pii_location["latitude"]
+        #self.log(logging.DEBUG, "piiquerystringdetection: " + \
+        #    "Device location [formatted] - long:%s; lat:%s." \
+        #    % (longitude, latitude))
+        if (longitude in query_string and latitude in query_string):
+            pii_location_found.append(longitude)
+            pii_location_found.append(latitude)
+        return pii_location_found
+
+    def detect_pii_details_querystring(self, query_string, pii_details):
+        ### Search query string for Personal details
+        ###
+        pii_details_found = []
+        personal_details = pii_details["plain-text"]
+        base64_personal_details = pii_details["base64"]
+        urlencoded_personal_details = pii_details["url-encoded"]
+
+        perm_personal_details = {}
+        perm_personal_details = {k:v for d in
+            (personal_details, base64_personal_details, \
+                urlencoded_personal_details)
+            for k, v in d.iteritems()}
+
+        #self.log(logging.DEBUG, "piiquerystringdetection: " + \
+        #    "Personal Details [PT] - %s." \
+        #    % combined_pii["details"]["plain-text"])
+        pii_details_found = [k for k, v in
+            perm_personal_details.iteritems() if v in query_string]
+        return pii_details_found
 
 @handler.passive(handlers)
 class PIIHTTPHeaderDetectionHandler(HttpDetectionHandler):
@@ -497,7 +548,6 @@ class PIIHTTPHeaderDetectionHandler(HttpDetectionHandler):
                 ignore_headers = ["host", "connection", "content-length", "accept",
                     "user-agent", "content-type", "accept-encoding", "accept-language",
                     "accept-charset"]
-
                 valid_header_text = ""
                 valid_headers = {k:v for k, v in request_headers.iteritems()
                     if k not in ignore_headers}
@@ -522,7 +572,7 @@ class PIIHTTPHeaderDetectionHandler(HttpDetectionHandler):
                         for k, v in d.iteritems()}
 
                     ### Search for personal ID values in the request headers
-                    personal_ids_found = [k for k, v in perm_personal_ids.iteritems()
+                    pii_identifiers_found = [k for k, v in perm_personal_ids.iteritems()
                         if v in valid_header_text]
 
                     ### Search for device location in request headers
@@ -550,10 +600,10 @@ class PIIHTTPHeaderDetectionHandler(HttpDetectionHandler):
 
                     ### If PII found in headers raise a notification.
                     ###
-                    if (personal_ids_found):
+                    if (pii_identifiers_found):
                         self.log(logging.ERROR,
                             "NP: Personal IDs found in request headers - %s."
-                            % personal_ids_found)
+                            % pii_identifiers_found)
                         self.log_event(
                             logging.ERROR,
                             connection.AttackEvent(
