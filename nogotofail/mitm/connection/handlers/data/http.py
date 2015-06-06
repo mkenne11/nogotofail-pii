@@ -411,10 +411,11 @@ class PIIQueryStringDetectionHandler(DataHandler):
             #self.log(logging.DEBUG, "piiquerystringdetection: " + \
             #    "Request query string - %s." % query_string)
 
+            # Search for PII in HTTP query string
             pii_identifiers_found = []
             pii_location_found = []
             pii_details_found = []
-            # Check for PII in query stringbefore proceeding.
+
             if (query_string):
                 if (combined_pii["identifiers"]):
                     pii_identifiers_found = \
@@ -537,89 +538,158 @@ class PIIHTTPHeaderDetectionHandler(HttpDetectionHandler):
         #self.log(logging.DEBUG, "piihttpheaderdetection: Client headers - %s." \
         #    % client.info["headers"])
         if (client):
-            try:
-                ### Search http header text for personal IDs
-                request_headers = dict(http.headers)
-                host = request_headers.get("host", self.connection.server_addr)
-                url = host + http.path
+            #try:
+            ### Search http header text for personal IDs
+            request_headers = dict(http.headers)
+            host = request_headers.get("host", self.connection.server_addr)
+            url = host + http.path
 
-                #self.log(logging.DEBUG, "piihttpheaderdetection: " +
-                #    "on_http request headers - %s. " % request_headers )
-                ignore_headers = ["host", "connection", "content-length", "accept",
-                    "user-agent", "content-type", "accept-encoding", "accept-language",
-                    "accept-charset"]
-                valid_header_text = ""
-                valid_headers = {k:v for k, v in request_headers.iteritems()
-                    if k not in ignore_headers}
+            #self.log(logging.DEBUG, "piihttpheaderdetection: " +
+            #    "on_http request headers - %s. " % request_headers )
+            ignore_headers = ["host", "connection", "content-length", "accept",
+                "user-agent", "content-type", "accept-encoding", "accept-language",
+                "accept-charset"]
+            valid_header_text = ""
+            valid_headers = {k:v for k, v in request_headers.iteritems()
+                if k not in ignore_headers}
+            ### If valid headers, search request query string for PII
+            ###
+            if (valid_headers):
+                valid_header_keys = valid_headers.keys()
+                valid_header_text = str(valid_headers.values()).translate(None,"[']")
+                #self.log(logging.DEBUG, "piihttpheaderdetection: Remaining " +
+                #    "valid http headers - %s." % valid_header_keys )
 
-                ### If valid headers, search request query string for PII
+                combined_pii = client.combined_pii
+
+                ### Search for personal ID values in the request headers
+                #pii_identifiers_found = [k for k, v in perm_personal_ids.iteritems()
+                #    if v in valid_header_text]
+
+                ### Search for device location in request headers
                 ###
-                if (valid_headers):
-                    valid_header_keys = valid_headers.keys()
-                    valid_header_text = str(valid_headers.values()).translate(None,"[']")
-                    self.log(logging.DEBUG, "piihttpheaderdetection: Remaining " +
-                        "valid http headers - %s." % valid_header_keys )
+                location_in_headers = False
+                if (combined_pii["location"]):
+                    longitude = combined_pii["location"]["longitude"]
+                    latitude = combined_pii["location"]["latitude"]
+                    #self.log(logging.DEBUG, "piiquerystringdetection: " + \
+                    #    "Device location [formatted] - long:%s; lat:%s." \
+                    #    % (longitude, latitude))
+                    if (longitude in valid_header_text and \
+                        latitude in valid_header_text):
+                        location_in_headers = True
 
-                    combined_pii = client.combined_pii
-                    #personal_ids = client.info["PII-Identifiers"]["plain-text"]
-                    #base64_personal_ids = client.info["PII-Identifiers"]["base64"]
-                    personal_ids = combined_pii["identifiers"]["plain-text"]
-                    base64_personal_ids = combined_pii["identifiers"]["base64"]
-                    # Merge plain-text and base 64 encoded versions of personal
-                    # IDs into one dictionary.
-                    perm_personal_ids = {k:v for d in
-                        (personal_ids, base64_personal_ids)
-                        for k, v in d.iteritems()}
+                ### Search for PII in HTTP headers
+                pii_identifiers_found = []
+                pii_location_found = []
+                pii_details_found = []
 
-                    ### Search for personal ID values in the request headers
-                    pii_identifiers_found = [k for k, v in perm_personal_ids.iteritems()
-                        if v in valid_header_text]
+                if (combined_pii["identifiers"]):
+                    pii_identifiers_found = \
+                        self.detect_pii_ids_headers(valid_header_text, \
+                            combined_pii["identifiers"])
+                if (combined_pii["location"]):
+                    pii_location_found = \
+                        self.detect_pii_location_headers(valid_header_text, \
+                            combined_pii["location"])
+                if (combined_pii["details"]):
+                    pii_details_found = \
+                        self.detect_pii_details_headers(valid_header_text, \
+                            combined_pii["details"])
 
-                    ### Search for device location in request headers
-                    ###
-                    location_in_headers = False
-                    if (combined_pii["location"]):
-                        longitude = combined_pii["location"]["longitude"]
-                        latitude = combined_pii["location"]["latitude"]
-                        #self.log(logging.DEBUG, "piiquerystringdetection: " + \
-                        #    "Device location [formatted] - long:%s; lat:%s." \
-                        #    % (longitude, latitude))
-                        if (longitude in valid_header_text and \
-                            latitude in valid_header_text):
-                            location_in_headers = True
+                ### If PII found in headers raise a notification.
+                ###
+                # If PII identifiers found in headers
+                if (pii_identifiers_found):
+                    self.log(logging.ERROR,
+                        "NP: Personal IDs found in request headers - %s."
+                        % pii_identifiers_found)
+                    self.log_event(
+                        logging.ERROR,
+                        connection.AttackEvent(
+                            self.connection, self.name, True, url))
+                    self.connection.vuln_notify(
+                        util.vuln.VULN_PII_HTTP_HEADER_DETECTION)
+                # If PII location found in headers
+                if (pii_location_found):
+                    self.log(logging.ERROR,
+                        "NP: Location found in request headers " + \
+                        "(longitude, latitude) - %s" \
+                        % pii_location_found)
+                    self.log_event(
+                        logging.ERROR,
+                        connection.AttackEvent(
+                            self.connection, self.name, True, url))
+                    self.connection.vuln_notify(
+                        util.vuln.VULN_PII_HTTP_HEADER_DETECTION)
+                if (pii_details_found):
+                    self.log(logging.ERROR,
+                        "NP: Personal details found in request headers - %s."
+                        % pii_details_found)
+                    self.log_event(
+                        logging.ERROR,
+                        connection.AttackEvent(
+                            self.connection, self.name, True, url))
+                    self.connection.vuln_notify(
+                        util.vuln.VULN_PII_HTTP_HEADER_DETECTION)
+            #except Exception as e:
+            #    self.log(logging.ERROR, str(e))
 
-                    ### Search for PII details in the request headers
-                    ###
-                    personal_details = combined_pii["details"]["plain-text"]
-                    if (personal_details):
-                        #self.log(logging.DEBUG, "piihttpheaderdetection: " + \
-                        #    "Personal Details [PT] - %s." \
-                        #    % combined_pii["details"]["plain-text"])
-                        # TODO: Add check for personal details.
-                        iii = 1
+    def detect_pii_ids_headers(self, header_text, pii_identifiers):
+        ### Check for PII identifiers in HTTP headers
+        ###
+        # Merge plain-text, base 64 and url encoded versions of PII
+        # identifiers into one dictionary.
+        pii_identifiers_found = []
+        personal_ids = pii_identifiers["plain-text"]
+        base64_personal_ids = pii_identifiers["base64"]
+        urlencoded_personal_ids = pii_identifiers["url-encoded"]
 
-                    ### If PII found in headers raise a notification.
-                    ###
-                    if (pii_identifiers_found):
-                        self.log(logging.ERROR,
-                            "NP: Personal IDs found in request headers - %s."
-                            % pii_identifiers_found)
-                        self.log_event(
-                            logging.ERROR,
-                            connection.AttackEvent(
-                                self.connection, self.name, True, url))
-                        self.connection.vuln_notify(
-                            util.vuln.VULN_PII_HTTP_HEADER_DETECTION)
-                    if (location_in_headers):
-                        self.log(logging.ERROR,
-                            "NP: Location found in request headers " + \
-                            "(longitude, latitude) - ['%s', '%s']" \
-                            % (longitude, latitude))
-                        self.log_event(
-                            logging.ERROR,
-                            connection.AttackEvent(
-                                self.connection, self.name, True, url))
-                        self.connection.vuln_notify(
-                            util.vuln.VULN_PII_HTTP_HEADER_DETECTION)
-            except Exception as e:
-                self.log(logging.ERROR, str(e))
+        perm_personal_ids = {}
+        perm_personal_ids = {k:v for d in
+            (personal_ids, base64_personal_ids, urlencoded_personal_ids)
+            for k, v in d.iteritems()}
+        #self.log(logging.ERROR, "perm_personal_ids - %s."
+        #    % perm_personal_ids)
+
+        # Search query string for personal identifier values.
+        pii_identifiers_found = [k for k, v in
+            perm_personal_ids.iteritems() if v in header_text]
+        return pii_identifiers_found
+
+    def detect_pii_location_headers(self, header_text, pii_location):
+        ### Check for device location in HTTP headers
+        ###
+        pii_location_found = []
+        longitude = pii_location["longitude"]
+        latitude = pii_location["latitude"]
+        #self.log(logging.DEBUG, "piiquerystringdetection: " + \
+        #    "Device location [formatted] - long:%s; lat:%s." \
+        #    % (longitude, latitude))
+        if (longitude in header_text and latitude in header_text):
+            pii_location_found.append(longitude)
+            pii_location_found.append(latitude)
+        return pii_location_found
+
+    def detect_pii_details_headers(self, header_text, pii_details):
+        ### Search HTTP headers for PII details
+        ###
+        # Merge plain-text, base 64 and url encoded versions of PII
+        # details into one dictionary.
+        pii_details_found = []
+        personal_details = pii_details["plain-text"]
+        base64_personal_details = pii_details["base64"]
+        urlencoded_personal_details = pii_details["url-encoded"]
+
+        perm_personal_details = {}
+        perm_personal_details = {k:v for d in
+            (personal_details, base64_personal_details, \
+                urlencoded_personal_details)
+            for k, v in d.iteritems()}
+
+        #self.log(logging.DEBUG, "piiquerystringdetection: " + \
+        #    "Personal Details [PT] - %s." \
+        #    % combined_pii["details"]["plain-text"])
+        pii_details_found = [k for k, v in
+            perm_personal_details.iteritems() if v in header_text]
+        return pii_details_found
