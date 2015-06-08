@@ -33,3 +33,4 @@ VULN_TLS_SUPERFISH_TRUSTED = "superfishca"
 # Privacy vuln types for notification
 VULN_PII_QUERY_STRING_DETECTION = "piiquerystringdetection"
 VULN_PII_HTTP_HEADER_DETECTION = "piihttpheaderdetection"
+VULN_PII_HTTP_BODY_DETECTION = "piihttpbodydetection"

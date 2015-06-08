@@ -23,6 +23,8 @@ class HTTPRequest(BaseHTTPRequestHandler):
     """Basic RequestHandler to try and parse a given request_text as an HTTP request.
 
     """
+    # Noseyparker variables.
+    #request_headers = {}
 
     def __init__(self, request_text):
         # sometimes path and headers don't get set in the object, set some dummy
@@ -58,7 +60,6 @@ def parse_request(request):
     if http.error_code:
         return None
     return http
-
 
 def parse_response(response):
     """Try and parse response as an HTTP response.
