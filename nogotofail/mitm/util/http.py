@@ -23,9 +23,7 @@ class HTTPRequest(BaseHTTPRequestHandler):
     """Basic RequestHandler to try and parse a given request_text as an HTTP request.
 
     """
-    # Noseyparker variables.
-    #request_headers = {}
-
+    
     def __init__(self, request_text):
         # sometimes path and headers don't get set in the object, set some dummy
         # ones so we don't have to check for them elsewhere.
