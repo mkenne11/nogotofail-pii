@@ -218,7 +218,7 @@ class PIIHTTPHeaderDetectionHandler(HttpDetectionHandler):
                     self.connection.vuln_notify(
                         util.vuln.VULN_PII_HTTP_HEADER_DETECTION)
 
-    # Not checking response headers as PII as couldn't find examples
+    # Not checking response headers for PII as couldn't find examples
     # containing PII.
     """
     def on_http_response(self, http):
