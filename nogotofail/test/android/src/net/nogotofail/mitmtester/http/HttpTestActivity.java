@@ -16,6 +16,7 @@
 
 package net.nogotofail.mitmtester.http;
 
+import android.content.Context;
 import android.os.Bundle;
 import android.view.View;
 import net.nogotofail.mitmtester.R;
@@ -29,11 +30,33 @@ public class HttpTestActivity extends TestActivity {
 
     setContentView(R.layout.http_test_activity);
 
+    final Context app_context = this.getApplicationContext();
+
     findViewById(R.id.http_with_authorization).setOnClickListener(new View.OnClickListener() {
       @Override
       public void onClick(View v) {
         startTest(new CleartextHttpCredentialsTest());
       }
     });
+
+    findViewById(R.id.http_cleartext_pii_query_string).setOnClickListener(new View.OnClickListener() {
+      @Override
+      public void onClick(View v) {
+        startTest(new CleartextHttpPiiQueryStringTest(app_context));
+      }
+    });
+    findViewById(R.id.http_cleartext_pii_header).setOnClickListener(new View.OnClickListener() {
+      @Override
+      public void onClick(View v) {
+        startTest(new CleartextHttpPiiHeaderTest(app_context));
+      }
+    });
+    findViewById(R.id.http_cleartext_pii_message_body).setOnClickListener(new View.OnClickListener() {
+      @Override
+      public void onClick(View v) {
+        startTest(new CleartextHttpPiiMessageBodyTest(app_context));
+      }
+    });
+
   }
 }
