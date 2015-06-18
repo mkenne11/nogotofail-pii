@@ -17,7 +17,7 @@ import logging
 from nogotofail.mitm import util
 from nogotofail.mitm.connection.handlers.data import handlers
 from nogotofail.mitm.connection.handlers.data import DataHandler
-from nogotofail.mitm.connection.handlers.data import HttpDetectionHandler
+#from nogotofail.mitm.connection.handlers.data import HttpDetectionHandler
 from nogotofail.mitm.connection.handlers.store import handler
 from nogotofail.mitm.event import connection
 import re
@@ -27,6 +27,96 @@ from StringIO import StringIO
 import gzip
 import httplib
 import zlib
+
+
+@handler.passive(handlers)
+class HttpDetectionHandler2Way(DataHandler):
+
+    name = "httpdetection2way"
+    description = "Detect plaintext HTTP requests and responses and warn on them"
+
+    def on_request(self, request):
+        http = util.http.parse_request(request)
+        if http and not http.error_code:
+            host = http.headers.get("host", self.connection.server_addr)
+            if not self.connection.hostname:
+                self.connection.hostname = host
+            self.on_http_request(http)
+        return request
+
+    def on_http_request(self, http):
+        host = http.headers.get("host", self.connection.server_addr)
+        self.log(logging.ERROR, "HTTP request %s %s"
+                 % (http.command, host + http.path))
+        self.log_event(
+            logging.ERROR,
+            connection.AttackEvent(
+                self.connection, self.name, True,
+                host + http.path))
+        self.connection.vuln_notify(util.vuln.VULN_CLEARTEXT_HTTP)
+
+    def on_response(self, response):
+        http = util.http.parse_response(response)
+        if http: #and not http.error_code:
+            host = http.getheader("host") #.get("host", self.connection.server_addr)
+            if not self.connection.hostname:
+                self.connection.hostname = host
+            if not self.connection.ssl:
+                self.on_http_response(http)
+        return response
+
+    def on_http_response(self, http):
+        headers = dict(http.getheaders())
+
+    def get_request_message_content(self, http):
+        http_content = ""
+        headers = dict(http.headers)
+        content_len = int(headers.get("content-length", 0))
+        # Retrieve content from HTTP request message body
+        if (content_len > 0):
+            http_content = http.rfile.read(content_len)
+        return http_content
+
+    def get_response_message_content(self, http):
+        http_content = ""
+        headers = dict(http.getheaders())
+        content_type = headers.get("content-type", "")
+        content_encoding = headers.get("content-encoding", "")
+
+        content_chunk_list = []
+        number_of_chunks = 0
+        try:
+            while True:
+                content_chunk = http.read(1024)
+                content_chunk_list.append(content_chunk)
+                number_of_chunks += 1
+                # Stop reading HTTP content when all chunks have been read
+                if not content_chunk:
+                    break
+                # Stop reading HTTP HTML and text content when 2 chunks
+                # have been read i.e. truncate content.
+                elif ((content_type == "text/html" or
+                    content_type == "text/plain") and \
+                    number_of_chunks == 2):
+                    break
+        except httplib.IncompleteRead, e:
+            content_chunk = e.partial
+            content_chunk_list.append(content_chunk)
+        http_content = ''.join(content_chunk_list)
+        #self.log(logging.DEBUG, "HTTP response headers: " + \
+        #    "content-type - %s; content-encoding - %s" \
+        try:
+            if ("deflate" in content_encoding or "gzip" in content_encoding):
+                # Decompress Deflate HTTP body
+                http_content = zlib.decompress(http_content, zlib.MAX_WBITS|32)
+                #self.log(logging.DEBUG, "HTTP Content - %s."
+                #    % http_content)
+        # Handling decompression of a truncated or partial file
+        # is read.
+        except zlib.error, e:
+            zlib_partial = zlib.decompressobj(zlib.MAX_WBITS|32)
+            http_content = zlib_partial.decompress(http_content)
+        return http_content
 
 
 @handler.passive(handlers)
@@ -115,13 +205,13 @@ class PIIQueryStringDetectionHandler(DataHandler):
 
 
 @handler.passive(handlers)
-class PIIHTTPHeaderDetectionHandler(HttpDetectionHandler):
+class PIIHTTPHeaderDetectionHandler(HttpDetectionHandler2Way):
     """Check if PII appears in plain text http (non-https) page headers.
     """
     name = "piihttpheaderdetection"
     description = "Detect pii in plain text http headers"
 
-    def on_http(self, http):
+    def on_http_request(self, http):
         # Search http header text for PII
         client = self.connection.app_blame.clients.get(self.connection.client_addr)
         #self.log(logging.DEBUG, "piihttpheaderdetection: Client headers - %s." \
@@ -227,14 +317,14 @@ class PIIHTTPHeaderDetectionHandler(HttpDetectionHandler):
 
 
 @handler.passive(handlers)
-class PIIHTTPBodyDetectionHandler(HttpDetectionHandler):
+class PIIHTTPBodyDetectionHandler(HttpDetectionHandler2Way):
     """Check if PII appears in plain text http (non-https) page headers.
     """
     name = "piihttpbodydetection"
     description = "Detect pii in plain text http bodies"
 
     # Process unencrypted (non-HTTPS) HTTP request message bodies
-    def on_http(self, http):
+    def on_http_request(self, http):
         client = self.connection.app_blame.clients.get(self.connection.client_addr)
         if (client):
             if (http):
@@ -252,7 +342,7 @@ class PIIHTTPBodyDetectionHandler(HttpDetectionHandler):
 
                 # Retrieve content from HTTP request message body
                 if (content_type in valid_content_type) and (content_len > 0):
-                    http_content = http.rfile.read(content_len)
+                    http_content = self.get_request_message_content(http)
                 #    self.log(logging.DEBUG, "HTTP request body: " + \
                 #        "content - %s" % http_content )
                     # Fetched combined PII collection
@@ -316,47 +406,11 @@ class PIIHTTPBodyDetectionHandler(HttpDetectionHandler):
                 #host = headers.get("host", "")
                 content_encoding = headers.get("content-encoding", "")
                 content_type = headers.get("content-type", "")
+                content_len = int(headers.get("content-length", 0))
 
-                content_chunk_list = []
-                number_of_chunks = 0
-                try:
-                    while True:
-                        content_chunk = http.read(1024)
-                        content_chunk_list.append(content_chunk)
-                        number_of_chunks += 1
-                        # Stop reading HTTP content when all chunks have been read
-                        if not content_chunk:
-                            break
-                        # Stop reading HTTP HTML and text content when 2 chunks
-                        # have been read i.e. truncate content.
-                        elif ((content_type == "text/html" or \
-                            content_type == "text/plain") and \
-                            number_of_chunks == 2):
-                            break
-                except httplib.IncompleteRead, e:
-                    content_chunk = e.partial
-                    content_chunk_list.append(content_chunk)
-
-                http_content = ''.join(content_chunk_list)
-                #self.log(logging.DEBUG, "HTTP response headers: " + \
-                #    "content-type - %s; content-encoding - %s" \
-                #    % (content_type, content_encoding) )
-
-                if (content_type in valid_content_type):
-                    try:
-                        if ("deflate" in content_encoding or
-                            "gzip" in content_encoding):
-                            # Decompress Deflate HTTP body
-                            http_content = zlib.decompress(http_content, \
-                                zlib.MAX_WBITS|32)
-                            #self.log(logging.DEBUG, "HTTP Content - %s."
-                            #    % http_content)
-                    # Handling decompression of a truncated or partial file
-                    # is read.
-                    except zlib.error, e:
-                        zlib_partial = zlib.decompressobj(zlib.MAX_WBITS|32)
-                        http_content = zlib_partial.decompress(http_content)
-
+                if (content_type in valid_content_type) and (content_len > 0):
+                    # Fetch message body content
+                    http_content = self.get_response_message_content(http)
                     # Fetched combined PII collection
                     combined_pii = client.combined_pii
                     # Check for PII identifiers in HTTP body
@@ -379,9 +433,8 @@ class PIIHTTPBodyDetectionHandler(HttpDetectionHandler):
                         self.log(logging.ERROR,
                             "PII: Personal IDs found in HTTP response body - %s."
                             % pii_identifiers_found)
-                        self.log_event(
-                            logging.ERROR, connection.AttackEvent(
-                                self.connection, self.name, True, url))
+                        self.log_event(logging.ERROR, connection.AttackEvent(
+                            self.connection, self.name, True, url))
                         self.connection.vuln_notify(
                             util.vuln.VULN_PII_HTTP_BODY_DETECTION)
                     # If PII location found in HTTP body
@@ -390,10 +443,8 @@ class PIIHTTPBodyDetectionHandler(HttpDetectionHandler):
                             "PII: Location found in HTTP response body " + \
                             "(longitude, latitude) - %s" \
                             % pii_location_found)
-                        self.log_event(
-                            logging.ERROR,
-                            connection.AttackEvent(
-                                self.connection, self.name, True, url))
+                        self.log_event(logging.ERROR, connection.AttackEvent(
+                            self.connection, self.name, True, url))
                         self.connection.vuln_notify(
                             util.vuln.VULN_PII_HTTP_BODY_DETECTION)
                     # If PII details found in HTTP body
@@ -401,10 +452,8 @@ class PIIHTTPBodyDetectionHandler(HttpDetectionHandler):
                         self.log(logging.ERROR,
                             "PII: Personal details found in HTTP response body - %s."
                             % pii_details_found)
-                        self.log_event(
-                            logging.ERROR,
-                            connection.AttackEvent(
-                                self.connection, self.name, True, url))
+                        self.log_event(logging.ERROR, connection.AttackEvent(
+                            self.connection, self.name, True, url))
                         self.connection.vuln_notify(
                             util.vuln.VULN_PII_HTTP_BODY_DETECTION)
 

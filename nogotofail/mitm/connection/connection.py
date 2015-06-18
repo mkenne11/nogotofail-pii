@@ -121,8 +121,8 @@ class BaseConnection(object):
         data_handler_classes = data_handler_selector(self, app_blame)
         self.data_handlers = [handler_class(self)
                               for handler_class in data_handler_classes]
-        self.logger.debug("Using data handlers %s" %
-                ', '.join([handler.name for handler in self.data_handlers]))
+        #self.logger.debug("Using data handlers %s" %
+        #        ', '.join([handler.name for handler in self.data_handlers]))
 
         self.client_bridge_fn = self._bridge_client
         self.server_bridge_fn = self._bridge_server

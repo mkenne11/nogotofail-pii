@@ -129,21 +129,6 @@ class HttpDetectionHandler(DataHandler):
                 host + http.path))
         self.connection.vuln_notify(util.vuln.VULN_CLEARTEXT_HTTP)
 
-    def on_response(self, response):
-        http = util.http.parse_response(response)
-        if http: #and not http.error_code:
-            #headers = http.getheaders()
-            host = http.getheader("host") #.get("host", self.connection.server_addr)
-            if not self.connection.hostname:
-                self.connection.hostname = host
-            #self.on_http(http)
-            if not self.connection.ssl:
-                self.on_http_response(http)
-        return response
-
-    def on_http_response(self, http):
-        iii = 1
-
 
 @handler.passive(handlers)
 class HttpAuthHandler(HttpDetectionHandler):
