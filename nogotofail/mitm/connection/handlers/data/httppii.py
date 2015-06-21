@@ -13,27 +13,24 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 '''
-import logging
 from nogotofail.mitm import util
 from nogotofail.mitm.connection.handlers.data import handlers
 from nogotofail.mitm.connection.handlers.data import DataHandler
-#from nogotofail.mitm.connection.handlers.data import HttpDetectionHandler
 from nogotofail.mitm.connection.handlers.store import handler
 from nogotofail.mitm.event import connection
-import re
-import urlparse
-import itertools
-from StringIO import StringIO
-import gzip
+
 import httplib
+import logging
+import urlparse
 import zlib
 
 
 @handler.passive(handlers)
-class HttpDetectionHandler2Way(DataHandler):
+class HttpDetectionMessageBodyHandler(DataHandler):
 
-    name = "httpdetection2way"
-    description = "Detect plaintext HTTP requests and responses and warn on them"
+    name = "httpdetectionmsgbbody"
+    description = "Detect plaintext HTTP requests and responses and allow \
+        classes that inherit from this to process"
 
     def on_request(self, request):
         http = util.http.parse_request(request)
@@ -58,7 +55,8 @@ class HttpDetectionHandler2Way(DataHandler):
     def on_response(self, response):
         http = util.http.parse_response(response)
         if http: #and not http.error_code:
-            host = http.getheader("host") #.get("host", self.connection.server_addr)
+            headers = dict(http.getheaders())
+            host = headers.get("host", self.connection.server_addr) #http.getheader("host")
             if not self.connection.hostname:
                 self.connection.hostname = host
             if not self.connection.ssl:
@@ -66,7 +64,8 @@ class HttpDetectionHandler2Way(DataHandler):
         return response
 
     def on_http_response(self, http):
-        headers = dict(http.getheaders())
+        # headers = dict(http.getheaders())
+        comment = "Code to be added in class inheriting this."
 
     def get_request_message_content(self, http):
         http_content = ""
@@ -78,6 +77,7 @@ class HttpDetectionHandler2Way(DataHandler):
         return http_content
 
     def get_response_message_content(self, http):
+        CHUNK_SIZE = 1024
         http_content = ""
         headers = dict(http.getheaders())
         content_type = headers.get("content-type", "")
@@ -87,7 +87,7 @@ class HttpDetectionHandler2Way(DataHandler):
         number_of_chunks = 0
         try:
             while True:
-                content_chunk = http.read(1024)
+                content_chunk = http.read(CHUNK_SIZE)
                 content_chunk_list.append(content_chunk)
                 number_of_chunks += 1
                 # Stop reading HTTP content when all chunks have been read
@@ -96,25 +96,25 @@ class HttpDetectionHandler2Way(DataHandler):
                 # Stop reading HTTP HTML and text content when 2 chunks
                 # have been read i.e. truncate content.
                 elif ((content_type == "text/html" or
-                    content_type == "text/plain") and \
-                    number_of_chunks == 2):
+                       content_type == "text/plain") and
+                      number_of_chunks == 2):
                     break
         except httplib.IncompleteRead, e:
             content_chunk = e.partial
             content_chunk_list.append(content_chunk)
         http_content = ''.join(content_chunk_list)
-        #self.log(logging.DEBUG, "HTTP response headers: " + \
+        # self.log(logging.DEBUG, "HTTP response headers: " + \
         #    "content-type - %s; content-encoding - %s" \
         try:
             if ("deflate" in content_encoding or "gzip" in content_encoding):
                 # Decompress Deflate HTTP body
                 http_content = zlib.decompress(http_content, zlib.MAX_WBITS|32)
-                #self.log(logging.DEBUG, "HTTP Content - %s."
+                # self.log(logging.DEBUG, "HTTP Content - %s."
                 #    % http_content)
         # Handling decompression of a truncated or partial file
         # is read.
         except zlib.error, e:
-            zlib_partial = zlib.decompressobj(zlib.MAX_WBITS|32)
+            zlib_partial = zlib.decompressobj(zlib.MAX_WBITS | 32)
             http_content = zlib_partial.decompress(http_content)
         return http_content
 
@@ -131,25 +131,24 @@ class PIIQueryStringDetectionHandler(DataHandler):
         if (client):
             # Fetch combined collection of PII
             combined_pii = client.combined_pii
-            #server_pii = self.connection.get_pii()
-            #self.log(logging.DEBUG, "Server PII - %s." % server_pii)
-            #self.log(logging.DEBUG, "Client Combined PII - %s." % combined_pii)
+            # server_pii = self.connection.get_pii()
+            # self.log(logging.DEBUG, "Server PII - %s." % server_pii)
+            # self.log(logging.DEBUG, "Client Combined PII - %s." % combined_pii)
 
             # Get HTTP request details
             http = util.http.parse_request(request)
             if not (http and not http.error_code):
                 return request
             host = http.headers.get("host", self.connection.server_addr)
-            #content_encoding = http.request_headers.get('content-encoding','')
             url = host + http.path
             # Extract query string from request url.
             url_parts = urlparse.urlparse(url)
             query_string = url_parts[4]
-            #self.log(logging.DEBUG, "piiquerystringdetection: " + \
-                #"Request query string - %s; encoding - %s" % \
-                #(query_string, content_encoding))
-                #"headers host - %s; encoding - %s" % \
-                #(host, http.request_headers))
+            # self.log(logging.DEBUG, "piiquerystringdetection: " + \
+            #     "Request query string - %s; encoding - %s" % \
+            #     (query_string, content_encoding))
+            #     "headers host - %s; encoding - %s" % \
+            #     (host, http.request_headers))
 
             # Search for PII in HTTP query string
             pii_identifiers_found = []
@@ -159,15 +158,15 @@ class PIIQueryStringDetectionHandler(DataHandler):
             if (query_string):
                 if (combined_pii["identifiers"]):
                     pii_identifiers_found = \
-                        PIIDetectionUtilities.detect_pii_ids(query_string, \
+                        PIIDetectionUtilities.detect_pii_ids(query_string,
                             combined_pii["identifiers"])
                 if (combined_pii["location"]):
                     pii_location_found = \
-                        PIIDetectionUtilities.detect_pii_location(query_string, \
+                        PIIDetectionUtilities.detect_pii_location(query_string,
                             combined_pii["location"])
                 if (combined_pii["details"]):
                     pii_details_found = \
-                        PIIDetectionUtilities.detect_pii_details(query_string, \
+                        PIIDetectionUtilities.detect_pii_details(query_string,
                             combined_pii["details"])
 
                 ### If PII found in query string raise a notification
@@ -175,37 +174,37 @@ class PIIQueryStringDetectionHandler(DataHandler):
                 # If PII identifiers found in query string
                 if (pii_identifiers_found):
                     error_message = \
-                        ["PII: Personal IDs found in request query string ", \
-                        str(pii_identifiers_found)]
+                        ["PII: Personal IDs found in request query string ",
+                         str(pii_identifiers_found)]
                     self.log(logging.ERROR, "".join(error_message))
                     self.log_event(logging.ERROR, connection.AttackEvent(
-                            self.connection, self.name, True, url))
+                                   self.connection, self.name, True, url))
                     self.connection.vuln_notify(
                         util.vuln.VULN_PII_QUERY_STRING_DETECTION)
                 # If PII location found in query string
                 if (pii_location_found):
                     error_message = \
-                        ["PII: Location found in request query string ", \
+                        ["PII: Location found in request query string ",
                          "(longitude, latitude) - ", str(pii_location_found)]
                     self.log(logging.ERROR, "".join(error_message))
                     self.log_event(logging.ERROR, connection.AttackEvent(
-                            self.connection, self.name, True, url))
+                                   self.connection, self.name, True, url))
                     self.connection.vuln_notify(
                         util.vuln.VULN_PII_QUERY_STRING_DETECTION)
                 # If PII details found in query string
                 if (pii_details_found):
                     error_message = \
-                        ["PII: Personal details found in request ", \
+                        ["PII: Personal details found in request ",
                          "query string - ", str(pii_details_found)]
                     self.log(logging.ERROR, "".join(error_message))
                     self.log_event(logging.ERROR, connection.AttackEvent(
-                            self.connection, self.name, True, url))
+                                   self.connection, self.name, True, url))
                     self.connection.vuln_notify(
                         util.vuln.VULN_PII_QUERY_STRING_DETECTION)
 
 
 @handler.passive(handlers)
-class PIIHTTPHeaderDetectionHandler(HttpDetectionHandler2Way):
+class PIIHTTPHeaderDetectionHandler(HttpDetectionMessageBodyHandler):
     """Check if PII appears in plain text http (non-https) page headers.
     """
     name = "piihttpheaderdetection"
@@ -222,28 +221,24 @@ class PIIHTTPHeaderDetectionHandler(HttpDetectionHandler2Way):
             host = request_headers.get("host", self.connection.server_addr)
             url = host + http.path
 
-            #self.log(logging.DEBUG, "piihttpheaderdetection: " +
+            # self.log(logging.DEBUG, "piihttpheaderdetection: " +
             #    "on_http request headers - %s. " % request_headers )
-            ignore_headers = ["host", "connection", "content-length", "accept", \
-                "user-agent", "content-type", "accept-encoding", \
-                "accept-language", "accept-charset"]
+            ignore_headers = ["host", "connection", "content-length", "accept",
+                              "user-agent", "content-type", "accept-encoding",
+                              "accept-language", "accept-charset"]
             valid_header_text = ""
-            valid_headers = {k:v for k, v in request_headers.iteritems()
+            valid_headers = {k: v for k, v in request_headers.iteritems()
                 if k not in ignore_headers}
             ### If valid headers, search request query string for PII
             ###
             if (valid_headers):
-                valid_header_keys = valid_headers.keys()
+                # valid_header_keys = valid_headers.keys()
                 valid_header_text = \
                     str(valid_headers.values()).translate(None,"[']")
-                #self.log(logging.DEBUG, "piihttpheaderdetection: Remaining " +
+                # self.log(logging.DEBUG, "piihttpheaderdetection: Remaining " +
                 #    "valid http headers - %s." % valid_header_keys )
 
                 combined_pii = client.combined_pii
-
-                ### Search for personal ID values in the request headers
-                #pii_identifiers_found = [k for k, v in perm_personal_ids.iteritems()
-                #    if v in valid_header_text]
 
                 ### Search for device location in request headers
                 ###
@@ -251,10 +246,10 @@ class PIIHTTPHeaderDetectionHandler(HttpDetectionHandler2Way):
                 if (combined_pii["location"]):
                     longitude = combined_pii["location"]["longitude"]
                     latitude = combined_pii["location"]["latitude"]
-                    #self.log(logging.DEBUG, "piiquerystringdetection: " + \
+                    # self.log(logging.DEBUG, "piiquerystringdetection: " + \
                     #    "Device location [formatted] - long:%s; lat:%s." \
                     #    % (longitude, latitude))
-                    if (longitude in valid_header_text and \
+                    if (longitude in valid_header_text and
                         latitude in valid_header_text):
                         location_in_headers = True
 
@@ -265,15 +260,15 @@ class PIIHTTPHeaderDetectionHandler(HttpDetectionHandler2Way):
 
                 if (combined_pii["identifiers"]):
                     pii_identifiers_found = \
-                        PIIDetectionUtilities.detect_pii_ids(valid_header_text, \
+                        PIIDetectionUtilities.detect_pii_ids(valid_header_text,
                             combined_pii["identifiers"])
                 if (combined_pii["location"]):
                     pii_location_found = \
-                        PIIDetectionUtilities.detect_pii_location(valid_header_text, \
+                        PIIDetectionUtilities.detect_pii_location(valid_header_text,
                             combined_pii["location"])
                 if (combined_pii["details"]):
                     pii_details_found = \
-                        PIIDetectionUtilities.detect_pii_details(valid_header_text, \
+                        PIIDetectionUtilities.detect_pii_details(valid_header_text,
                             combined_pii["details"])
 
                 ### If PII found in headers raise a notification.
@@ -282,29 +277,29 @@ class PIIHTTPHeaderDetectionHandler(HttpDetectionHandler2Way):
                 if (pii_identifiers_found):
                     error_message = \
                         ["PII: Personal IDs found in request headers - ", \
-                        str(pii_identifiers_found)]
+                         str(pii_identifiers_found)]
                     self.log(logging.ERROR, "".join(error_message))
                     self.log_event(logging.ERROR, connection.AttackEvent(
-                            self.connection, self.name, True, url))
+                                   self.connection, self.name, True, url))
                     self.connection.vuln_notify(
                         util.vuln.VULN_PII_HTTP_HEADER_DETECTION)
                 # If PII location found in headers
                 if (pii_location_found):
                     error_message = \
                         ["PII: Location found in request headers ", \
-                        "(longitude, latitude) - ", str(pii_location_found)]
+                         "(longitude, latitude) - ", str(pii_location_found)]
                     self.log(logging.ERROR, "".join(error_message))
                     self.log_event(logging.ERROR, connection.AttackEvent(
-                            self.connection, self.name, True, url))
+                                   self.connection, self.name, True, url))
                     self.connection.vuln_notify(
                         util.vuln.VULN_PII_HTTP_HEADER_DETECTION)
                 if (pii_details_found):
                     error_message = \
-                        ["PII: Personal details found in request headers - ", \
-                        str(pii_details_found)]
+                        ["PII: Personal details found in request headers - ",
+                         str(pii_details_found)]
                     self.log(logging.ERROR, "".join(error_message))
                     self.log_event(logging.ERROR, connection.AttackEvent(
-                            self.connection, self.name, True, url))
+                                   self.connection, self.name, True, url))
                     self.connection.vuln_notify(
                         util.vuln.VULN_PII_HTTP_HEADER_DETECTION)
 
@@ -317,7 +312,7 @@ class PIIHTTPHeaderDetectionHandler(HttpDetectionHandler2Way):
 
 
 @handler.passive(handlers)
-class PIIHTTPBodyDetectionHandler(HttpDetectionHandler2Way):
+class PIIHTTPBodyDetectionHandler(HttpDetectionMessageBodyHandler):
     """Check if PII appears in plain text http (non-https) page headers.
     """
     name = "piihttpbodydetection"
@@ -325,18 +320,19 @@ class PIIHTTPBodyDetectionHandler(HttpDetectionHandler2Way):
 
     # Process unencrypted (non-HTTPS) HTTP request message bodies
     def on_http_request(self, http):
-        client = self.connection.app_blame.clients.get(self.connection.client_addr)
+        client = self.connection.app_blame.clients.get(
+                                                self.connection.client_addr)
         if (client):
             if (http):
                 # HTTP request valid "content-type" header values
-                valid_content_type = ["text/html","application/json","text/plain", \
-                    "text/xml","application/xml"]
+                valid_content_type = ["text/html", "application/json",
+                                    "text/plain", "text/xml", "application/xml"]
                 headers = dict(http.headers)
                 host = headers.get("host", self.connection.server_addr)
                 content_type = headers.get("content-type", "")
                 content_len = int(headers.get("content-length", 0))
                 url = host + http.path
-                #self.log(logging.DEBUG, "HTTP request body: " + \
+                # self.log(logging.DEBUG, "HTTP request body: " + \
                 #    "content-type - %s; content-len - %s;" \
                 #    % (content_type, content_len) )
 
@@ -349,62 +345,62 @@ class PIIHTTPBodyDetectionHandler(HttpDetectionHandler2Way):
                     combined_pii = client.combined_pii
                     # Check for PII identifiers in HTTP body
                     pii_identifiers_found = \
-                        PIIDetectionUtilities.detect_pii_ids(http_content, \
-                            combined_pii["identifiers"])
+                        PIIDetectionUtilities.detect_pii_ids(http_content,
+                                                combined_pii["identifiers"])
                     # Check for PII location in HTTP body
                     pii_location_found = \
-                        PIIDetectionUtilities.detect_pii_location(http_content, \
-                            combined_pii["location"])
+                        PIIDetectionUtilities.detect_pii_location(http_content,
+                                                combined_pii["location"])
                     # Check for PII details in HTTP body
                     pii_details_found = \
-                        PIIDetectionUtilities.detect_pii_details(http_content, \
-                            combined_pii["details"])
+                        PIIDetectionUtilities.detect_pii_details(http_content,
+                                                combined_pii["details"])
 
                     ### If PII found in HTTP body raise a notification
                     ###
                     # If PII identifiers found in HTTP body
                     if (pii_identifiers_found):
                         error_message = \
-                            ["PII: Personal IDs found in HTTP request message ", \
-                            "body - ", str(pii_identifiers_found)]
+                            ["PII: Personal IDs found in HTTP request message ",
+                             "body - ", str(pii_identifiers_found)]
                         self.log(logging.ERROR, "".join(error_message))
                         self.log_event(logging.ERROR, connection.AttackEvent(
-                            self.connection, self.name, True, url))
+                                       self.connection, self.name, True, url))
                         self.connection.vuln_notify(
                             util.vuln.VULN_PII_HTTP_BODY_DETECTION)
                     # If PII location found in HTTP body
                     if (pii_location_found):
                         error_message = \
-                            ["PII: Location found in HTTP request message body ", \
-                            "(longitude, latitude) - ", str(pii_location_found)]
+                            ["PII: Location found in HTTP request message ",
+                             "body (longitude, latitude) - ",
+                             str(pii_location_found)]
                         self.log(logging.ERROR, "".join(error_message))
                         self.log_event(logging.ERROR, connection.AttackEvent(
-                            self.connection, self.name, True, url))
+                                       self.connection, self.name, True, url))
                         self.connection.vuln_notify(
                             util.vuln.VULN_PII_HTTP_BODY_DETECTION)
                     # If PII details found in HTTP body
                     if (pii_details_found):
                         error_message = \
                             ["PII: Personal details found in HTTP request ", \
-                            "message body - ", str(pii_details_found)]
+                             "message body - ", str(pii_details_found)]
                         self.log(logging.ERROR, "".join(error_message))
                         self.log_event(logging.ERROR, connection.AttackEvent(
                             self.connection, self.name, True, url))
                         self.connection.vuln_notify(
                             util.vuln.VULN_PII_HTTP_BODY_DETECTION)
 
-
-    # Process unencrypted (non-HTTPS) HTTP response message bodies
     def on_http_response(self, http):
+        """ Method processes unencrypted (non-HTTPS) HTTP response message bodies
+        """
         client = self.connection.app_blame.clients.get(self.connection.client_addr)
         if (client):
             if (http):
                 # HTTP response valid "content-type" header values
                 valid_content_type = ["text/html","application/json","text/plain", \
-                    "text/xml","application/xml"]
+                                      "text/xml","application/xml"]
                 headers = dict(http.getheaders())
-                #host = headers.get("host", "")
-                content_encoding = headers.get("content-encoding", "")
+                # host = headers.get("host", "")
                 content_type = headers.get("content-type", "")
                 content_len = int(headers.get("content-length", 0))
 
@@ -415,20 +411,21 @@ class PIIHTTPBodyDetectionHandler(HttpDetectionHandler2Way):
                     combined_pii = client.combined_pii
                     # Check for PII identifiers in HTTP body
                     pii_identifiers_found = \
-                        PIIDetectionUtilities.detect_pii_ids(http_content, \
-                            combined_pii["identifiers"])
+                        PIIDetectionUtilities.detect_pii_ids(http_content,
+                                                combined_pii["identifiers"])
                     # Check for PII location in HTTP body
                     pii_location_found = \
-                        PIIDetectionUtilities.detect_pii_location(http_content, \
-                            combined_pii["location"])
+                        PIIDetectionUtilities.detect_pii_location(http_content,
+                                                combined_pii["location"])
                     # Check for PII details in HTTP body
                     pii_details_found = \
-                        PIIDetectionUtilities.detect_pii_details(http_content, \
-                            combined_pii["details"])
+                        PIIDetectionUtilities.detect_pii_details(http_content,
+                                                combined_pii["details"])
 
                     ### If PII found in HTTP body raise a notification
                     ###
                     # If PII identifiers found in HTTP body
+                    url =  ""
                     if (pii_identifiers_found):
                         self.log(logging.ERROR,
                             "PII: Personal IDs found in HTTP response body - %s."
@@ -440,8 +437,8 @@ class PIIHTTPBodyDetectionHandler(HttpDetectionHandler2Way):
                     # If PII location found in HTTP body
                     if (pii_location_found):
                         self.log(logging.ERROR,
-                            "PII: Location found in HTTP response body " + \
-                            "(longitude, latitude) - %s" \
+                            "PII: Location found in HTTP response body " +
+                            "(longitude, latitude) - %s"
                             % pii_location_found)
                         self.log_event(logging.ERROR, connection.AttackEvent(
                             self.connection, self.name, True, url))
@@ -465,8 +462,9 @@ class PIIDetectionUtilities(object):
 
     @staticmethod
     def detect_pii_ids(http_string, pii_identifiers):
-        ### Check for PII identifiers in HTTP headers
-        ###
+        """ Method searches for PII identifiers within a HTTP string
+            i.e. query string, headers, message body
+        """
         # Merge plain-text, base 64 and url encoded versions of PII
         # identifiers into one dictionary.
         pii_identifiers_found = []
@@ -475,19 +473,20 @@ class PIIDetectionUtilities(object):
         urlencoded_personal_ids = pii_identifiers["url-encoded"]
 
         perm_personal_ids = {}
-        perm_personal_ids = {k:v for d in
-            (personal_ids, base64_personal_ids, urlencoded_personal_ids)
-            for k, v in d.iteritems()}
+        perm_personal_ids = {k: v for d in
+                (personal_ids, base64_personal_ids, urlencoded_personal_ids)
+                for k, v in d.iteritems()}
 
         # Search query string for personal identifier values.
         pii_identifiers_found = [k for k, v in
-            perm_personal_ids.iteritems() if v in http_string]
+                            perm_personal_ids.iteritems() if v in http_string]
         return pii_identifiers_found
 
     @staticmethod
     def detect_pii_location(http_string, pii_location):
-        ### Check for device location in HTTP headers
-        ###
+        """ Method searches for location (longitude/latitude) within a
+        HTTP string i.e. query string, headers, message body
+        """
         pii_location_found = []
         longitude = pii_location["longitude"]
         latitude = pii_location["latitude"]
@@ -499,8 +498,9 @@ class PIIDetectionUtilities(object):
 
     @staticmethod
     def detect_pii_details(http_string, pii_details):
-        ### Search HTTP headers for PII details
-        ###
+        """ Method searches for PII details within a HTTP string
+            i.e. query string, headers, message body
+        """
         # Merge plain-text, base 64 and url encoded versions of PII
         # details into one dictionary.
         pii_details_found = []
@@ -509,11 +509,11 @@ class PIIDetectionUtilities(object):
         urlencoded_personal_details = pii_details["url-encoded"]
 
         perm_personal_details = {}
-        perm_personal_details = {k:v for d in
-            (personal_details, base64_personal_details, \
+        perm_personal_details = {k: v for d in
+            (personal_details, base64_personal_details,
                 urlencoded_personal_details)
             for k, v in d.iteritems()}
 
         pii_details_found = [k for k, v in
-            perm_personal_details.iteritems() if v in http_string]
+                        perm_personal_details.iteritems() if v in http_string]
         return pii_details_found
