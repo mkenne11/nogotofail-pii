@@ -133,7 +133,8 @@ class PIIQueryStringDetectionHandler(DataHandler):
             combined_pii = client.combined_pii
             # server_pii = self.connection.get_pii()
             # self.log(logging.DEBUG, "Server PII - %s." % server_pii)
-            # self.log(logging.DEBUG, "Client Combined PII - %s." % combined_pii)
+            # self.log(logging.DEBUG, "PIIQueryStringDetectionHandler" +
+            #          ":Client Combined PII - %s." % combined_pii)
 
             # Get HTTP request details
             http = util.http.parse_request(request)
@@ -159,15 +160,15 @@ class PIIQueryStringDetectionHandler(DataHandler):
                 if (combined_pii["identifiers"]):
                     pii_identifiers_found = \
                         PIIDetectionUtilities.detect_pii_ids(query_string,
-                            combined_pii["identifiers"])
+                                                combined_pii["identifiers"])
                 if (combined_pii["location"]):
                     pii_location_found = \
                         PIIDetectionUtilities.detect_pii_location(query_string,
-                            combined_pii["location"])
+                                                combined_pii["location"])
                 if (combined_pii["details"]):
                     pii_details_found = \
                         PIIDetectionUtilities.detect_pii_details(query_string,
-                            combined_pii["details"])
+                                                combined_pii["details"])
 
                 ### If PII found in query string raise a notification
                 ###
@@ -213,7 +214,7 @@ class PIIHTTPHeaderDetectionHandler(HttpDetectionMessageBodyHandler):
     def on_http_request(self, http):
         # Search http header text for PII
         client = self.connection.app_blame.clients.get(self.connection.client_addr)
-        #self.log(logging.DEBUG, "piihttpheaderdetection: Client headers - %s." \
+        # self.log(logging.DEBUG, "piihttpheaderdetection: Client headers - %s." \
         #    % client.info["headers"])
         if (client):
             ### Search http header text for personal IDs
