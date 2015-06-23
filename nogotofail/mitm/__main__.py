@@ -122,7 +122,8 @@ def get_client_pii_identifiers():
         except Exception as e:
             logger.exception(str(e))
             return {}
-
+"""
+# Currently client not passing PII details.
 def get_client_pii_details():
 
     def client_pii_details(connection, app_blame):
@@ -136,6 +137,23 @@ def get_client_pii_details():
             if client_info:
                 pii_details = client_info["PII-Details"]
             return pii_details
+        except Exception as e:
+            logger.exception(str(e))
+            return {}
+"""
+def get_client_pii_location():
+
+    def client_pii_location(connection, app_blame):
+        pii_location = {}
+        try:
+            if (not app_blame.client_available(connection.client_addr)):
+                return internal + []
+            # Figure out our possible handlers
+            client_info = app_blame.clients.get(connection.client_addr)
+            client_info = client_info.info if client_info else None
+            if client_info:
+                pii_location = client_info["PII-Location"]
+            return pii_location
         except Exception as e:
             logger.exception(str(e))
             return {}
@@ -360,11 +378,13 @@ def run():
                   for name in args.attacks]
     data_cls = [handlers.data.handlers.map[name] for name in args.data]
     ssl_selector = build_ssl_selector(attack_cls, args.probability, args.all)
-    data_selector = build_data_selector(data_cls, args.all, prob_attack=args.probability)
+    data_selector = build_data_selector(data_cls, args.all,
+                                        prob_attack=args.probability)
     # Get personal ids collection from client if available
     client_pii_identifiers = get_client_pii_identifiers()
     # Get personal details collection from client if available
-    client_pii_details = get_client_pii_details()
+    # client_pii_details = get_client_pii_details()
+    client_pii_location = get_client_pii_location()
     # Build PII collection.
     server_config_pii = {}
     server_config_pii["identifiers"] = args.pii_identifiers
@@ -378,7 +398,8 @@ def run():
         logger.info("Server: PII details args - " + str(args.pii_details))
 
         logger.info("Client: PII IDs - " + str(client_pii_identifiers))
-        logger.info("Client: PII details - " + str(client_pii_identifiers))
+        #logger.info("Client: PII details - " + str(client_pii_details))
+        logger.info("Client: PII location - " + str(client_pii_location))
 
     except Exception as e:
         logger.exception(str(e))

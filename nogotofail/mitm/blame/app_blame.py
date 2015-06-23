@@ -230,7 +230,7 @@ class Client(object):
         data = self.info.get("Data-Attacks", self.server.default_data)
         data_str = ",".join([attack.name for attack in data])
         self.socket.sendall("Data-Attacks: %s\n" % data_str)
-        #TODO: Determine if the Personal-Ids dictionary needs to be passed back
+        # TODO: Determine if the Personal-Ids dictionary needs to be passed back
         # to the client.
 
         supported_data = ",".join([
@@ -240,7 +240,6 @@ class Client(object):
         self.socket.sendall("\n")
 
     def _parse_headers(self, lines):
-        import copy
         #try:
         raw_headers = [line.split(":", 1) for line in lines[1:]]
         headers = {entry.strip(): header.strip()
@@ -277,8 +276,6 @@ class Client(object):
         if ("PII-Identifiers" in headers):
             # Define Personal IDs container
             client_info["PII-Identifiers"] = {}
-            personal_ids_base64 = {}
-            personal_ids_urlencoded = {}
 
             # Convert Personal IDs string to a dictionary
             personal_ids = ast.literal_eval(headers["PII-Identifiers"])
@@ -288,6 +285,10 @@ class Client(object):
             # TODO: Think if HTML encoding is needed for PII information.
             # e.g. ',",&,<,> characters.
 
+        client_info["PII-Details"] = {}
+        client_info["PII-Details"]["plain-text"] = {}
+
+        """
         if ("PII-Details" in headers):
             # Define Personal Details containers
             client_info["PII-Details"] = {}
@@ -298,39 +299,32 @@ class Client(object):
             # Convert Personal Details string to a dictionary
             personal_details = ast.literal_eval(headers["PII-Details"])
 
-            ### Create PII location dictionary
-            # If the device location was received format as a number to 3
-            # decimal places.
+            client_info["PII-Details"]["plain-text"] = personal_details
+        """
+        if ("PII-Location" in headers):
             client_info["PII-Location"] = {}
-            device_location = personal_details.get("device_location", {})
-            if (device_location):
-                longitude = device_location.get("longitude", "0.00000")
-                latitude = device_location.get("latitude", "0.00000")
+            # Convert Personal Location string to a dictionary
+            personal_location = ast.literal_eval(headers["PII-Location"])
+            if (personal_location):
+                longitude = personal_location.get("longitude", "0.00000")
+                latitude = personal_location.get("latitude", "0.00000")
             else:
-                personal_details["device_location"] = {}
                 longitude = "0.00000"
                 latitude = "0.00000"
-
-            #device_location = personal_details["device_location"]
-            personal_details["device_location"]["longitude"] = \
+            client_info["PII-Location"]["longitude"] = \
                 truncate(float(longitude), 2)
-            personal_details["device_location"]["latitude"] = \
+            client_info["PII-Location"]["latitude"] = \
                 truncate(float(latitude), 2)
-            client_info["PII-Location"] = \
-                copy.deepcopy(personal_details["device_location"])
-            del personal_details["device_location"]
-
-            client_info["PII-Details"]["plain-text"] = personal_details
 
         # Store the raw headers as well in case a handler needs something the
         # client sent in an additional header
         client_info["headers"] = headers
         self.info = client_info
-        #self.logger.debug("Client_info method: %s." % client_info)
+        # self.logger.debug("Client_info method: %s." % client_info)
 
         # Create and store combined client and server PII parameters.
         self.combined_pii = self.combine_pii_items()
-        #except Exception as e:
+        # except Exception as e:
         #    self.logger.debug("Error in _parse_headers() method: %s." % str(e))
 
     def _response_select_fn(self):
@@ -363,14 +357,11 @@ class Client(object):
         else:
             self.logger.debug("Blame: Response for unknown txid %d from %s", txid, self.address)
 
-
-    ### Noseyparker methods
-
-    # Create combined collection of client and server config pii parameters
     def combine_pii_items(self):
+        """ Method creates a combined collection of client and server config pii
+            values
+        """
         import base64
-        import itertools
-        #import urllib
 
         combined_pii = {}
         try:
@@ -421,7 +412,6 @@ class Client(object):
             # PII collection. Overwrite value with server config version if
             # any conflict.
             for id_key, id_value in config_pii_details.iteritems():
-            #if (id_key not in personal_details.keys()):
                 combined_pii["details"]["plain-text"][id_key] = id_value
 
             personal_details = combined_pii["details"]["plain-text"]
@@ -434,9 +424,7 @@ class Client(object):
             #    "personal_details.iteritems - %s" % str(personal_details))
             # Create base64 dictionary of PII details
             for id_key, id_value in personal_details.iteritems():
-                # Add a base64 version of ID to dictionary, if the item
-                # isn't a sub-dictionary.
-                #if (id_key != "device_location"):
+                # Add a base64 version of ID to dictionary
                 personal_details_base64[id_key + " (base64)"] = \
                     base64.b64encode(id_value)
             combined_pii["details"]["base64"] = personal_details_base64
@@ -446,17 +434,17 @@ class Client(object):
                 # Add a url encoded version of ID to dictionary if its different
                 # from the plain text version & if the item it isn't a
                 # sub-dictionary.
-                #if (id_key != "device_location"):
                 id_value_urln = urllib.quote_plus(id_value)
                 if (id_value != id_value_urln):
-                    personal_details_urlencoded[id_key + \
+                    personal_details_urlencoded[id_key +
                         " (url encoded)"] = id_value_urln
             combined_pii["details"]["url-encoded"] = personal_details_urlencoded
 
             # TODO: Think if HTML encoding is needed for PII information.
             # e.g. ',",&,<,> characters.
         except Exception as e:
-            self.logger.debug(" Error in method combine_pii_items(): %s." % str(e))
+            self.logger.debug(" Error in method combine_pii_items(): %s."
+                              % str(e))
         return combined_pii
 
 
@@ -615,8 +603,9 @@ class Server:
 
     ### Noseyparker methods
 
-    # Return server config pii parameters.
     def get_pii(self):
+        """ Function return server config pii values.
+        """
         if (self.pii):
             return self.pii
         else:

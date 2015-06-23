@@ -94,13 +94,14 @@ public class RouterConnectionHandler implements RouterSocketClient.ConnectionHan
   private static final String HEADER_ENABLED_ATTACKS = "Attacks";
   private static final String HEADER_SUPPORTED_ATTACKS = "Supported-Attacks";
   private static final String HEADER_SUPPORTED_ATTACKS_LOWER_CASE =
-      HEADER_SUPPORTED_ATTACKS.toLowerCase(Locale.US);
+          HEADER_SUPPORTED_ATTACKS.toLowerCase(Locale.US);
   private static final String HEADER_ENABLED_DATA_ATTACKS = "Data-Attacks";
   private static final String HEADER_SUPPORTED_DATA_ATTACKS = "Supported-Data-Attacks";
   private static final String HEADER_SUPPORTED_DATA_ATTACKS_LOWER_CASE =
-      HEADER_SUPPORTED_DATA_ATTACKS.toLowerCase(Locale.US);
+          HEADER_SUPPORTED_DATA_ATTACKS.toLowerCase(Locale.US);
   private static final String HEADER_PII_IDENTIFIERS = "PII-Identifiers";
   private static final String HEADER_PII_DETAILS = "PII-Details";
+  private static final String HEADER_PII_LOCATION = "PII-Location";
 
   /**
    * Timeout (milliseconds) for a read operation waiting for a command from the server. The server
@@ -117,7 +118,7 @@ public class RouterConnectionHandler implements RouterSocketClient.ConnectionHan
   private final String mPlatformInfo;
   private final String mUserAgent;
   private final Map<String, CommandHandler> mCommandHandlers =
-      new HashMap<String, CommandHandler>();
+          new HashMap<String, CommandHandler>();
 
 
   public RouterConnectionHandler(Context context) {
@@ -131,8 +132,8 @@ public class RouterConnectionHandler implements RouterSocketClient.ConnectionHan
     }
     int versionCode = (packageInfo != null) ? packageInfo.versionCode : -1;
     mUserAgent = packageName + "/" + versionCode
-        + " (Linux"
-        + "; Android " + Build.VERSION.RELEASE + ")";
+            + " (Linux"
+            + "; Android " + Build.VERSION.RELEASE + ")";
     mPlatformInfo = Build.FINGERPRINT;
 
     mCommandHandlers.put("tcp_client_id", new TcpClientInfoCommandHandler(context));
@@ -144,45 +145,52 @@ public class RouterConnectionHandler implements RouterSocketClient.ConnectionHan
     Log.i(TAG, "Handling connection to " + socket.getRemoteSocketAddress());
     try {
       BufferedWriter out =
-          new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), "UTF-8"));
+              new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), "UTF-8"));
       BufferedReader in =
-          new BufferedReader(new InputStreamReader(socket.getInputStream(), "UTF-8"));
+              new BufferedReader(new InputStreamReader(socket.getInputStream(), "UTF-8"));
 
       // Start handshake
       writeHandshakeRequestLine(out, PROTOCOL_NAME + "/" + PROTOCOL_VERSION);
       writeHandshakeRequestHeader(out, HEADER_USER_AGENT, mUserAgent);
       writeHandshakeRequestHeader(
-          out, HEADER_INSTALLATION_ID, AdvancedPreferenceFragment.getInstallationId(mContext));
+              out, HEADER_INSTALLATION_ID, AdvancedPreferenceFragment.getInstallationId(mContext));
       writeHandshakeRequestHeader(out, HEADER_PLATFORM_INFO, mPlatformInfo);
       Double requestedAttackProbability =
-          AttacksPreferenceFragment.getAttackProbability(mContext);
+              AttacksPreferenceFragment.getAttackProbability(mContext);
       if (requestedAttackProbability != null) {
         writeHandshakeRequestHeader(
-            out, HEADER_ATTACK_PROBABILITY, String.valueOf(requestedAttackProbability));
+                out, HEADER_ATTACK_PROBABILITY, String.valueOf(requestedAttackProbability));
       }
       Set<String> requestedEnabledAttackIds =
-          AttacksPreferenceFragment.getEnabledAttackIds(mContext);
+              AttacksPreferenceFragment.getEnabledAttackIds(mContext);
       if (requestedEnabledAttackIds != null) {
         writeHandshakeRequestHeader(
-            out, HEADER_ENABLED_ATTACKS, TextUtils.join(",", requestedEnabledAttackIds));
+                out, HEADER_ENABLED_ATTACKS, TextUtils.join(",", requestedEnabledAttackIds));
       }
       Set<String> requestedEnabledDataAttackIds =
-          AttacksPreferenceFragment.getEnabledDataAttackIds(mContext);
+              AttacksPreferenceFragment.getEnabledDataAttackIds(mContext);
       if (requestedEnabledDataAttackIds != null) {
         writeHandshakeRequestHeader(
-            out, HEADER_ENABLED_DATA_ATTACKS, TextUtils.join(",", requestedEnabledDataAttackIds));
+                out, HEADER_ENABLED_DATA_ATTACKS, TextUtils.join(",", requestedEnabledDataAttackIds));
       }
       Set <String> requestedPersonalIds =
-          AttacksPreferenceFragment.getPersonalIds(mContext);
+              AttacksPreferenceFragment.getPersonalIds(mContext);
       if (requestedPersonalIds != null) {
         writeHandshakeRequestHeader(
-            out, HEADER_PII_IDENTIFIERS, "{" + TextUtils.join(",", requestedPersonalIds) + "}");
+                out, HEADER_PII_IDENTIFIERS, "{" + TextUtils.join(",", requestedPersonalIds) + "}");
       }
+      /*
       Set <String> requestedPersonalDetails =
-        AttacksPreferenceFragment.getPersonalDetails(mContext);
+              AttacksPreferenceFragment.getPersonalDetails(mContext);
       if (requestedPersonalDetails != null) {
         writeHandshakeRequestHeader(
-          out, HEADER_PII_DETAILS, "{" + TextUtils.join(",", requestedPersonalDetails) + "}");
+                out, HEADER_PII_DETAILS, "{" + TextUtils.join(",", requestedPersonalDetails) + "}");
+      }*/
+      Set <String> requestedPersonalLocation =
+              AttacksPreferenceFragment.getPersonalLocation(mContext);
+      if (requestedPersonalLocation != null) {
+        writeHandshakeRequestHeader(
+                out, HEADER_PII_LOCATION, "{" + TextUtils.join(",", requestedPersonalLocation) + "}");
       }
       out.write("\r\n");
       out.flush();
@@ -308,7 +316,7 @@ public class RouterConnectionHandler implements RouterSocketClient.ConnectionHan
           if (idleTimeMillis >= CONNECTION_IDLE_TIMEOUT_MILLIS) {
             // Connection idle for too long -- terminate the connection and initiate a retry.
             throw new IOException("Connection idle for too long: "
-                + (idleTimeMillis / 1000) + " seconds");
+                    + (idleTimeMillis / 1000) + " seconds");
           }
           // Try reading again
         }
@@ -319,7 +327,7 @@ public class RouterConnectionHandler implements RouterSocketClient.ConnectionHan
   }
 
   private static void writeHandshakeRequestHeader(
-      BufferedWriter out, String headerName, String headerValue) throws IOException {
+          BufferedWriter out, String headerName, String headerValue) throws IOException {
     boolean valueCensored = false;
     if (HEADER_INSTALLATION_ID.equals(headerName)) {
       valueCensored = true;
@@ -334,7 +342,7 @@ public class RouterConnectionHandler implements RouterSocketClient.ConnectionHan
   }
 
   private static void writeHandshakeRequestLine(
-      BufferedWriter out, String line) throws IOException {
+          BufferedWriter out, String line) throws IOException {
     Log.d(TAG, "Sending handshake request line: " + line);
     out.write(line + "\r\n");
   }
