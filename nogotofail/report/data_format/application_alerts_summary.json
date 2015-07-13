@@ -1,0 +1,49 @@
+{
+    "application-alerts": [
+        {
+            "app_name": "mitm-tester-app",
+            "app_type": "client=google/razor/flo:5.1.1/LMA123/4561234:user/release-keys",
+            "app_version": "1",
+            "app_alerts": [
+                {
+                    "alert_type": "INFO",
+                    "alerts": [
+                        {
+                            "domain": "abc.com",
+                            "handler": "piiquerystringdetection",
+                            "message": "",
+                            "pii_items_found": ["location", "mac_address"]
+                        },
+                        {
+                            ...
+                        }
+                    ]
+                },
+                {
+                    "alert_type": "WARNING",
+                    "alerts": [
+                      {
+                          "domain": "abc.com",
+                          "handler": "piihttpbodydetection",
+                          "message": "",
+                          "pii_items_found": ""
+                      },
+                      {
+                          ...
+                      }
+                    ]
+                }
+            ],
+        },
+        {
+            "app_name": "mitm-tester-app",
+            "app_version": "2",
+            "app_type": "",
+            "app_alerts": [
+                {
+                    ...
+                }
+            ]
+        }
+    ]
+}

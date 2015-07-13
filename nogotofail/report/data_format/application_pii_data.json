@@ -1,0 +1,39 @@
+{
+    "application-data": {
+        // => app item
+        "mitm-tester-app":
+        {
+            "app_name": "mitm-tester-app",
+            "app_version": "1",
+            "app_type": "client=google/razor/flo:5.1.1/KMY91X/78341:user/release-keys",
+            "app_domains": [
+                // => app domain
+                {
+                    "domain": "android.com",
+                    // => domain_elements
+                    "unencrypted_elements": {
+                      // => domain_element
+                        "query_strings": {
+                              "count": {"a=1&b=2": 3},
+                              "key_value_count": {
+                                  "a=1": 3,
+                                  "b=2": 3
+                              }
+                        },
+                        "pii_query_string":
+                            ["google_ad_id", "android_id"],
+                        "pii_http_header":
+                            ["location"],
+                        "pii_http_body": []
+                    },
+                    "encrypted_elements": {
+                        "pii_query_string": [],
+                        "pii_http_header":
+                            ["mac_address"],
+                        "pii_http_body": []
+                    }
+                }
+            ]
+        }
+    }
+}

@@ -14,6 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 '''
 
+import inspect
+import time
+from functools import wraps
+
 ### Miscellaneous utility functions
 
 # Truncates/pads a float f to n decimal places without rounding and
@@ -24,3 +28,20 @@ def truncate(f, n):
         return '{0:.{1}f}'.format(f, n)
     i, p, d = s.partition('.')
     return '.'.join([i, (d+'0'*n)[:n]])
+
+def fn_timer(class_name):
+    """ Decorator "fn_timer" which times a function and has argument "class-name".
+        Based on code at: http://www.marinamele.com/7-tips-to-time-python-scripts-and-control-memory-and-cpu-usage
+    """
+    def _fn_timer(function):
+        @wraps(function)
+        def function_timer(*args, **kwargs):
+            t0 = time.time()
+            result = function(*args, **kwargs)
+            t1 = time.time()
+            print ("Total time running %s:: %s: %s seconds" %
+                   (class_name, function.func_name, str(t1-t0))
+                   )
+            return result
+        return function_timer
+    return _fn_timer

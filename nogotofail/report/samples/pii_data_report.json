@@ -1,0 +1,80 @@
+"com.ringtones.app": {
+    "app_domains": [
+      {
+        "domain": "ads.mopub.com",
+        "unencrypted_elements": {
+          "pii_query_string": [
+            "google_advertising_id"
+          ]
+        },
+        "query_strings": {
+          "count": {
+            "id=f02dfc9b095140a297efec753e947b7c&dn=asus%2CNexus%207%2Crazor": "11",
+            "cid=47795c6f1afe4cd7a7f39ca6fd54d5e7&city=Mountain%20View&ckv=2&country_code=US&os=Android&osv=5.1.1": "4"
+          },
+          "key_value_count": {
+            "req=a54235ff7ea124387b33b590cdd3eb098": "4",
+            "dn=samsun%2CGalaxy%207%2CTab": "11",
+            "osv=5.1.1": "4",
+            "city=Mountain%20View": "4",
+            "id=f02df4fda83db32e147efec753e947b7c": "11",
+            "country_code=US": "4",
+            "cid=47799eaf1afe4cd81bf39ca62d54d5e7": "4",
+            "os=Android": "4",
+          }
+        }
+      }
+    ],
+    "app_version": "321",
+    "app_type": "client=google/galaxytab/flo:5.1.1/LMR22F/1365102:user/release-keys",
+    "app_name": "com.ringtones.app"
+  },
+  "com.mobile.game1.google": {
+    "app_domains": [
+      {
+        "domain": "androidads.ads-r-us.com",
+        "unencrypted_elements": {
+          "pii_query_string": [
+            "google_advertising_id"
+          ]
+        }
+      },
+      {
+        "domain": "api.bungle.com",
+        "unencrypted_elements": {
+          "pii_http_body": [
+            "google_advertising_id"
+          ]
+        }
+      },
+      {
+        "domain": "engine.sponsorpay.com",
+        "unencrypted_elements": {
+          "pii_query_string": [
+            "google_advertising_id"
+          ]
+        }
+      },
+      {
+        "domain": "apps.ad-x.co.uk",
+        "unencrypted_elements": {
+          "pii_query_string": [
+            "google_advertising_id"
+          ]
+        }
+      },
+      {
+        "domain": "api.ads.com",
+        "unencrypted_elements": {
+          "pii_http_body": [
+            "google_advertising_id",
+            " android_id"
+          ]
+        }
+      }
+    ],
+    "app_version": "1101",
+    "app_type": "client=google/galaxytab/flo:5.1.1/LMY48G/1365102:user/release-keys",
+    "app_name": "com.mobile.game1.google"
+  }
+}

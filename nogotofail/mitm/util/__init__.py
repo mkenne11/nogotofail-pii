@@ -20,4 +20,4 @@ from constant import Constants
 from socket import close_quietly
 import vuln
 import http
-from miscellaneous import truncate
+from miscellaneous import *
