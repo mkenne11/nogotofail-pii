@@ -1,3 +1,19 @@
+r'''
+Copyright 2014 Google Inc. All rights reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+'''
+
 """ Classes create data reports based on nogotofail application and event
     logs.
 """
@@ -268,7 +284,7 @@ class ApplicationAlertReport(DataReport):
             except KeyError:
                 connection = {}
                 handler = ""
-            # Fetch hostname value & domain for connection_id from event log
+            """ Fetch hostname value & domain for connection_id from event log """
             try:
                 event_log_entry = event_log_info[connection_id]
                 hostname = event_log_entry["hostname"].replace("www.", "")
@@ -281,8 +297,8 @@ class ApplicationAlertReport(DataReport):
             app_alert_entry = {}
             alerts_list = []
             app_entry_exists = False
-            # If an app entry doesn't exist create an application entry dictionary \
-            # and sub-entries.
+            """ If an app entry doesn't exist create an application entry dictionary \
+                and sub-entries """
             if (app_name and app_name != "unknown" and
                     alert_type not in IGNORE_ALERT_TYPE):
                 # print "*** App_name exists - %s" % app_name
@@ -543,7 +559,7 @@ class ApplicationDataReport(DataReport):
     """ Class creates a collection of application data items based on
         application and event log information.
     """
-    UNENCRYPTED_PII_HANDLER = "pii"
+    CLEARTEXT_PII_HANDLER = "cleartextpii"
     QUERY_STRING_HANDLER = "querystring"
     HTTP_HEADER_HANDLER = "httpheader"
     HTTP_BODY_HANDLER = "httpbody"
@@ -608,7 +624,7 @@ class ApplicationDataReport(DataReport):
                 handler """
             if (app_name and app_name != "unknown" and
                     alert_type not in IGNORE_ALERT_TYPE and
-                    handler.startswith(self.UNENCRYPTED_PII_HANDLER)):
+                    handler.startswith(self.CLEARTEXT_PII_HANDLER)):
                 #TODO: Add encrypted items handler check
                 """ Create report dictionary
                 """
@@ -623,7 +639,6 @@ class ApplicationDataReport(DataReport):
                     app_domain_list = app_item["app_domains"]
                     app_domain = {}
                     for _app_domain in app_domain_list:
-                        #if (_app_domain["hostname"] == hostname):
                         if (_app_domain["domain"] == domain):
                             app_domain = _app_domain
                             # print ("*** (Match) app_domain hostname - ", hostname,
@@ -790,7 +805,7 @@ class ApplicationDataReport(DataReport):
                     except IndexError:
                         query_string = ""
                 if (query_string):
-                    # If query_string already in query_string_dict increment count
+                    """ If query_string already in query_string_dict increment count """
                     try:
                         # print "query_string_count: hostname - " + hostname + \
                         #     "; count - " + query_string_dict[query_string]

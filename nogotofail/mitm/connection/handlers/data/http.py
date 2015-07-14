@@ -20,7 +20,9 @@ from nogotofail.mitm.connection.handlers.data import ClientReportDetection
 from nogotofail.mitm.connection.handlers.data import DataHandler
 from nogotofail.mitm.connection.handlers.store import handler
 from nogotofail.mitm.event import connection
+import httplib
 import re
+import zlib
 
 
 # By making this an internal handler, it will be enabled by default and run
@@ -150,6 +152,99 @@ class HttpAuthHandler(HttpDetectionHandler):
                     self.connection, self.name, True,
                     host + http.path))
             self.connection.vuln_notify(util.vuln.VULN_CLEARTEXT_AUTH)
+
+
+@handler.passive(handlers)
+class HttpDetectionMessageBodyHandler(DataHandler):
+
+    name = "httpdetectionmsgbbody"
+    description = "Detect plaintext HTTP requests and responses and allow \
+        classes that inherit from this to process"
+
+    def on_request(self, request):
+        http = util.http.parse_request(request)
+        if http and not http.error_code:
+            host = http.headers.get("host", self.connection.server_addr)
+            if not self.connection.hostname:
+                self.connection.hostname = host
+            self.on_http_request(http)
+        return request
+
+    def on_http_request(self, http):
+        host = http.headers.get("host", self.connection.server_addr)
+        self.log(logging.ERROR, "HTTP request %s %s"
+                 % (http.command, host + http.path))
+        self.log_event(
+            logging.ERROR,
+            connection.AttackEvent(
+                self.connection, self.name, True,
+                host + http.path))
+        self.connection.vuln_notify(util.vuln.VULN_CLEARTEXT_HTTP)
+
+    def on_response(self, response):
+        http = util.http.parse_response(response)
+        if http:
+            headers = dict(http.getheaders())
+            host = headers.get("host", self.connection.server_addr)
+            if not self.connection.hostname:
+                self.connection.hostname = host
+            if not self.connection.ssl:
+                self.on_http_response(http)
+        return response
+
+    def on_http_response(self, http):
+        comment = "Code to be added in class inheriting this."
+
+    def get_request_message_content(self, http):
+        http_content = ""
+        headers = dict(http.headers)
+        content_len = int(headers.get("content-length", 0))
+        """ Retrieve content from HTTP request message body """
+        if (content_len > 0):
+            http_content = http.rfile.read(content_len)
+        return http_content
+
+    def get_response_message_content(self, http):
+        """ Method returns the HTTP message body content. Compressed content is
+            uncompressed and content is truncated to a managable size """
+        CHUNK_SIZE = 1024
+        http_content = ""
+        headers = dict(http.getheaders())
+        content_type = headers.get("content-type", "")
+        content_encoding = headers.get("content-encoding", "")
+        content_chunk_list = []
+        number_of_chunks = 0
+        try:
+            while True:
+                content_chunk = http.read(CHUNK_SIZE)
+                content_chunk_list.append(content_chunk)
+                number_of_chunks += 1
+                """ Stop reading HTTP content after all chunks are read """
+                if not content_chunk:
+                    break
+                    """ Stop reading HTTP content after 2 chunks """
+                elif ((content_type == "text/html" or
+                       content_type == "text/plain") and
+                      number_of_chunks == 2):
+                    break
+        except httplib.IncompleteRead, e:
+            content_chunk = e.partial
+            content_chunk_list.append(content_chunk)
+        http_content = ''.join(content_chunk_list)
+        # self.log(logging.DEBUG, "HTTP response headers: " + \
+        #    "content-type - %s; content-encoding - %s" \
+        try:
+            """ Decompress compressed content """
+            if ("deflate" in content_encoding or "gzip" in content_encoding):
+                http_content = zlib.decompress(http_content, zlib.MAX_WBITS|32)
+                # self.log(logging.DEBUG, "HTTP Content - %s."
+                #    % http_content)
+        except zlib.error, e:
+            """ Handling decompression of a truncated or partial file
+                is read """
+            zlib_partial = zlib.decompressobj(zlib.MAX_WBITS | 32)
+            http_content = zlib_partial.decompress(http_content)
+        return http_content
 
 
 class _HttpReqReplacement(DataHandler):

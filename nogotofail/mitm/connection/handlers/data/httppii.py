@@ -16,115 +16,19 @@ limitations under the License.
 from nogotofail.mitm import util
 from nogotofail.mitm.connection.handlers.data import handlers
 from nogotofail.mitm.connection.handlers.data import DataHandler
+from nogotofail.mitm.connection.handlers.data import HttpDetectionMessageBodyHandler
 from nogotofail.mitm.connection.handlers.store import handler
 from nogotofail.mitm.event import connection
-
-import httplib
 import logging
 import urlparse
-import zlib
 
 
 @handler.passive(handlers)
-class HttpDetectionMessageBodyHandler(DataHandler):
-
-    name = "httpdetectionmsgbbody"
-    description = "Detect plaintext HTTP requests and responses and allow \
-        classes that inherit from this to process"
-
-    def on_request(self, request):
-        http = util.http.parse_request(request)
-        if http and not http.error_code:
-            host = http.headers.get("host", self.connection.server_addr)
-            if not self.connection.hostname:
-                self.connection.hostname = host
-            self.on_http_request(http)
-        return request
-
-    def on_http_request(self, http):
-        host = http.headers.get("host", self.connection.server_addr)
-        self.log(logging.ERROR, "HTTP request %s %s"
-                 % (http.command, host + http.path))
-        self.log_event(
-            logging.ERROR,
-            connection.AttackEvent(
-                self.connection, self.name, True,
-                host + http.path))
-        self.connection.vuln_notify(util.vuln.VULN_CLEARTEXT_HTTP)
-
-    def on_response(self, response):
-        http = util.http.parse_response(response)
-        if http: #and not http.error_code:
-            headers = dict(http.getheaders())
-            host = headers.get("host", self.connection.server_addr) #http.getheader("host")
-            if not self.connection.hostname:
-                self.connection.hostname = host
-            if not self.connection.ssl:
-                self.on_http_response(http)
-        return response
-
-    def on_http_response(self, http):
-        # headers = dict(http.getheaders())
-        comment = "Code to be added in class inheriting this."
-
-    def get_request_message_content(self, http):
-        http_content = ""
-        headers = dict(http.headers)
-        content_len = int(headers.get("content-length", 0))
-        # Retrieve content from HTTP request message body
-        if (content_len > 0):
-            http_content = http.rfile.read(content_len)
-        return http_content
-
-    def get_response_message_content(self, http):
-        CHUNK_SIZE = 1024
-        http_content = ""
-        headers = dict(http.getheaders())
-        content_type = headers.get("content-type", "")
-        content_encoding = headers.get("content-encoding", "")
-
-        content_chunk_list = []
-        number_of_chunks = 0
-        try:
-            while True:
-                content_chunk = http.read(CHUNK_SIZE)
-                content_chunk_list.append(content_chunk)
-                number_of_chunks += 1
-                # Stop reading HTTP content when all chunks have been read
-                if not content_chunk:
-                    break
-                # Stop reading HTTP HTML and text content when 2 chunks
-                # have been read i.e. truncate content.
-                elif ((content_type == "text/html" or
-                       content_type == "text/plain") and
-                      number_of_chunks == 2):
-                    break
-        except httplib.IncompleteRead, e:
-            content_chunk = e.partial
-            content_chunk_list.append(content_chunk)
-        http_content = ''.join(content_chunk_list)
-        # self.log(logging.DEBUG, "HTTP response headers: " + \
-        #    "content-type - %s; content-encoding - %s" \
-        try:
-            if ("deflate" in content_encoding or "gzip" in content_encoding):
-                # Decompress Deflate HTTP body
-                http_content = zlib.decompress(http_content, zlib.MAX_WBITS|32)
-                # self.log(logging.DEBUG, "HTTP Content - %s."
-                #    % http_content)
-        # Handling decompression of a truncated or partial file
-        # is read.
-        except zlib.error, e:
-            zlib_partial = zlib.decompressobj(zlib.MAX_WBITS | 32)
-            http_content = zlib_partial.decompress(http_content)
-        return http_content
-
-
-@handler.passive(handlers)
-class PIIQueryStringDetectionHandler(DataHandler):
+class CleartextPIIQueryStringDetectionHandler(DataHandler):
     """Check if PII appears in plain text http traffic http query strings.
     """
-    name = "piiquerystringdetection"
-    description = "Detect PII in plain text http query string"
+    name = "cleartextpiiquerystring"
+    description = "Detect PII in clear text http query strings"
 
     def on_request(self, request):
         client = self.connection.app_blame.clients.get(self.connection.client_addr)
@@ -181,7 +85,7 @@ class PIIQueryStringDetectionHandler(DataHandler):
                     self.log_event(logging.ERROR, connection.AttackEvent(
                                    self.connection, self.name, True, url))
                     self.connection.vuln_notify(
-                        util.vuln.VULN_PII_QUERY_STRING_DETECTION)
+                        util.vuln.VULN_CLEARTEXT_PII_QUERY_STRING)
                 # If PII location found in query string
                 if (pii_location_found):
                     error_message = \
@@ -191,7 +95,7 @@ class PIIQueryStringDetectionHandler(DataHandler):
                     self.log_event(logging.ERROR, connection.AttackEvent(
                                    self.connection, self.name, True, url))
                     self.connection.vuln_notify(
-                        util.vuln.VULN_PII_QUERY_STRING_DETECTION)
+                        util.vuln.VULN_CLEARTEXT_PII_QUERY_STRING)
                 # If PII details found in query string
                 if (pii_details_found):
                     error_message = \
@@ -201,15 +105,15 @@ class PIIQueryStringDetectionHandler(DataHandler):
                     self.log_event(logging.ERROR, connection.AttackEvent(
                                    self.connection, self.name, True, url))
                     self.connection.vuln_notify(
-                        util.vuln.VULN_PII_QUERY_STRING_DETECTION)
+                        util.vuln.VULN_CLEARTEXT_PII_QUERY_STRING)
 
 
 @handler.passive(handlers)
-class PIIHTTPHeaderDetectionHandler(HttpDetectionMessageBodyHandler):
+class CleartextPIIHTTPHeaderDetectionHandler(HttpDetectionMessageBodyHandler):
     """Check if PII appears in plain text http (non-https) page headers.
     """
-    name = "piihttpheaderdetection"
-    description = "Detect pii in plain text http headers"
+    name = "cleartextpiihttpheader"
+    description = "Detect pii in clear text http headers"
 
     def on_http_request(self, http):
         # Search http header text for PII
@@ -283,7 +187,7 @@ class PIIHTTPHeaderDetectionHandler(HttpDetectionMessageBodyHandler):
                     self.log_event(logging.ERROR, connection.AttackEvent(
                                    self.connection, self.name, True, url))
                     self.connection.vuln_notify(
-                        util.vuln.VULN_PII_HTTP_HEADER_DETECTION)
+                        util.vuln.VULN_CLEARTEXT_PII_HTTP_HEADER)
                 # If PII location found in headers
                 if (pii_location_found):
                     error_message = \
@@ -293,7 +197,7 @@ class PIIHTTPHeaderDetectionHandler(HttpDetectionMessageBodyHandler):
                     self.log_event(logging.ERROR, connection.AttackEvent(
                                    self.connection, self.name, True, url))
                     self.connection.vuln_notify(
-                        util.vuln.VULN_PII_HTTP_HEADER_DETECTION)
+                        util.vuln.VULN_CLEARTEXT_PII_HTTP_HEADER)
                 if (pii_details_found):
                     error_message = \
                         ["PII: Personal details found in request headers - ",
@@ -302,10 +206,10 @@ class PIIHTTPHeaderDetectionHandler(HttpDetectionMessageBodyHandler):
                     self.log_event(logging.ERROR, connection.AttackEvent(
                                    self.connection, self.name, True, url))
                     self.connection.vuln_notify(
-                        util.vuln.VULN_PII_HTTP_HEADER_DETECTION)
+                        util.vuln.VULN_CLEARTEXT_PII_HTTP_HEADER)
 
-    # Not checking response headers for PII as couldn't find examples
-    # containing PII.
+    """Not checking response headers for PII as couldn't find examples
+       containing PII """
     """
     def on_http_response(self, http):
 
@@ -313,14 +217,14 @@ class PIIHTTPHeaderDetectionHandler(HttpDetectionMessageBodyHandler):
 
 
 @handler.passive(handlers)
-class PIIHTTPBodyDetectionHandler(HttpDetectionMessageBodyHandler):
+class CleartextPIIHTTPBodyDetectionHandler(HttpDetectionMessageBodyHandler):
     """Check if PII appears in plain text http (non-https) page headers.
     """
-    name = "piihttpbodydetection"
-    description = "Detect pii in plain text http bodies"
+    name = "cleartextpiihttpbody"
+    description = "Detect pii in clear text http bodies"
 
-    # Process unencrypted (non-HTTPS) HTTP request message bodies
     def on_http_request(self, http):
+        """ Process unencrypted (non-HTTPS) HTTP request message bodies """
         client = self.connection.app_blame.clients.get(
                                                 self.connection.client_addr)
         if (client):
@@ -357,8 +261,7 @@ class PIIHTTPBodyDetectionHandler(HttpDetectionMessageBodyHandler):
                         PIIDetectionUtilities.detect_pii_details(http_content,
                                                 combined_pii["details"])
 
-                    ### If PII found in HTTP body raise a notification
-                    ###
+                    """ If PII found in HTTP body raise a notification """
                     # If PII identifiers found in HTTP body
                     if (pii_identifiers_found):
                         error_message = \
@@ -368,7 +271,7 @@ class PIIHTTPBodyDetectionHandler(HttpDetectionMessageBodyHandler):
                         self.log_event(logging.ERROR, connection.AttackEvent(
                                        self.connection, self.name, True, url))
                         self.connection.vuln_notify(
-                            util.vuln.VULN_PII_HTTP_BODY_DETECTION)
+                            util.vuln.VULN_CLEARTEXT_PII_HTTP_BODY)
                     # If PII location found in HTTP body
                     if (pii_location_found):
                         error_message = \
@@ -379,7 +282,7 @@ class PIIHTTPBodyDetectionHandler(HttpDetectionMessageBodyHandler):
                         self.log_event(logging.ERROR, connection.AttackEvent(
                                        self.connection, self.name, True, url))
                         self.connection.vuln_notify(
-                            util.vuln.VULN_PII_HTTP_BODY_DETECTION)
+                            util.vuln.VULN_CLEARTEXT_PII_HTTP_BODY)
                     # If PII details found in HTTP body
                     if (pii_details_found):
                         error_message = \
@@ -389,7 +292,7 @@ class PIIHTTPBodyDetectionHandler(HttpDetectionMessageBodyHandler):
                         self.log_event(logging.ERROR, connection.AttackEvent(
                             self.connection, self.name, True, url))
                         self.connection.vuln_notify(
-                            util.vuln.VULN_PII_HTTP_BODY_DETECTION)
+                            util.vuln.VULN_CLEARTEXT_PII_HTTP_BODY)
 
     def on_http_response(self, http):
         """ Method processes unencrypted (non-HTTPS) HTTP response message bodies
@@ -397,7 +300,7 @@ class PIIHTTPBodyDetectionHandler(HttpDetectionMessageBodyHandler):
         client = self.connection.app_blame.clients.get(self.connection.client_addr)
         if (client):
             if (http):
-                # HTTP response valid "content-type" header values
+                """ HTTP response valid "content-type" header values """
                 valid_content_type = ["text/html","application/json","text/plain", \
                                       "text/xml","application/xml"]
                 headers = dict(http.getheaders())
@@ -410,22 +313,17 @@ class PIIHTTPBodyDetectionHandler(HttpDetectionMessageBodyHandler):
                     http_content = self.get_response_message_content(http)
                     # Fetched combined PII collection
                     combined_pii = client.combined_pii
-                    # Check for PII identifiers in HTTP body
+                    """ Check for PII items in HTTP body """
                     pii_identifiers_found = \
                         PIIDetectionUtilities.detect_pii_ids(http_content,
                                                 combined_pii["identifiers"])
-                    # Check for PII location in HTTP body
                     pii_location_found = \
                         PIIDetectionUtilities.detect_pii_location(http_content,
                                                 combined_pii["location"])
-                    # Check for PII details in HTTP body
                     pii_details_found = \
                         PIIDetectionUtilities.detect_pii_details(http_content,
                                                 combined_pii["details"])
-
-                    ### If PII found in HTTP body raise a notification
-                    ###
-                    # If PII identifiers found in HTTP body
+                    """ If PII identifiers found in HTTP body """
                     url =  ""
                     if (pii_identifiers_found):
                         self.log(logging.ERROR,
@@ -434,8 +332,8 @@ class PIIHTTPBodyDetectionHandler(HttpDetectionMessageBodyHandler):
                         self.log_event(logging.ERROR, connection.AttackEvent(
                             self.connection, self.name, True, url))
                         self.connection.vuln_notify(
-                            util.vuln.VULN_PII_HTTP_BODY_DETECTION)
-                    # If PII location found in HTTP body
+                            util.vuln.VULN_CLEARTEXT_PII_HTTP_BODY)
+                    """ If PII location found in HTTP body """
                     if (pii_location_found):
                         self.log(logging.ERROR,
                             "PII: Location found in HTTP response body " +
@@ -444,8 +342,8 @@ class PIIHTTPBodyDetectionHandler(HttpDetectionMessageBodyHandler):
                         self.log_event(logging.ERROR, connection.AttackEvent(
                             self.connection, self.name, True, url))
                         self.connection.vuln_notify(
-                            util.vuln.VULN_PII_HTTP_BODY_DETECTION)
-                    # If PII details found in HTTP body
+                            util.vuln.VULN_CLEARTEXT_PII_HTTP_BODY)
+                    """ If PII details found in HTTP body """
                     if (pii_details_found):
                         self.log(logging.ERROR,
                             "PII: Personal details found in HTTP response body - %s."
@@ -453,7 +351,7 @@ class PIIHTTPBodyDetectionHandler(HttpDetectionMessageBodyHandler):
                         self.log_event(logging.ERROR, connection.AttackEvent(
                             self.connection, self.name, True, url))
                         self.connection.vuln_notify(
-                            util.vuln.VULN_PII_HTTP_BODY_DETECTION)
+                            util.vuln.VULN_CLEARTEXT_PII_HTTP_BODY)
 
 
 class PIIDetectionUtilities(object):
