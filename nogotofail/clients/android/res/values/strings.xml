@@ -95,11 +95,11 @@
     <!-- Vulnerability: XMPP STARTTLS strip -->
     <string name="vuln_xmppstarttlsstrip">Downgrade of STARTTLS-protected XMPP to cleartext</string>
     <!-- Vulnerability: Cleartext Personal IDs in Query String -->
-    <string name="vuln_piiquerystringdetection">PII: Cleartext PII detected in HTTP query string</string>
+    <string name="vuln_cleartextpiiquerystring">PII: Cleartext PII detected in HTTP query string</string>
     <!-- Vulnerability: PII dectected in HTTP headers -->
-    <string name="vuln_piihttpheaderdetection">PII: Cleartext PII detected in HTTP headers</string>
+    <string name="vuln_cleartextpiihttpheader">PII: Cleartext PII detected in HTTP headers</string>
     <!-- Vulnerability: PII dectected in HTTP message body -->
-    <string name="vuln_piihttpbodydetection">PII: Cleartext PII detected in HTTP message body</string>
+    <string name="vuln_cleartextpiihttpbody">PII: Cleartext PII detected in HTTP message body</string>
 
     <string name="notifications_pref_screen_title">Notifications</string>
     <string name="vuln_notifications_enabled_pref_title">Notifications</string>
@@ -166,13 +166,12 @@
     <string name="attack_title_xmppstarttlsstrip">XMPP STARTTLS strip</string>
     <string name="attack_summary_xmppstarttlsstrip">Downgrade of STARTTLS-protected XMPP to cleartext</string>
     <!-- Noseyparker PII notifications -->
-    <string name="attack_title_piiquerystringdetection">PII: Cleartext PII in HTTP query string</string>
-    <string name="attack_summary_piiquerystringdetection">PII: Cleartext PII appears in HTTP query string</string>
-    <string name="attack_title_piihttpheaderdetection">PII: Cleartext PII in HTTP headers</string>
-    <string name="attack_summary_piihttpheaderdetection">PII: Cleartext PII appears in HTTP headers</string>
-    <string name="attack_title_piihttpbodydetection">PII: Cleartext PII in HTTP message body</string>
-    <string name="attack_summary_piihttpbodydetection">PII: Cleartext PII appears in HTTP message body</string>
-    piihttpbodydetection
+    <string name="attack_title_cleartextpiiquerystring">PII: Cleartext PII in HTTP query string</string>
+    <string name="attack_summary_cleartextpiiquerystring">PII: Cleartext PII appears in HTTP query string</string>
+    <string name="attack_title_cleartextpiihttpheader">PII: Cleartext PII in HTTP headers</string>
+    <string name="attack_summary_cleartextpiihttpheader">PII: Cleartext PII appears in HTTP headers</string>
+    <string name="attack_title_cleartextpiihttpbody">PII: Cleartext PII in HTTP message body</string>
+    <string name="attack_summary_cleartextpiihttpbody">PII: Cleartext PII appears in HTTP message body</string>
 
     <string name="advanced_pref_screen_title">Advanced</string>
 

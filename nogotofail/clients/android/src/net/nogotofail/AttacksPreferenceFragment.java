@@ -65,9 +65,9 @@ public class AttacksPreferenceFragment extends PreferenceFragment {
     BUNDLED_SUPPORTED_DATA_ATTACK_IDS.add("sslstrip");
 
     // PII attack identifiers
-    BUNDLED_SUPPORTED_DATA_ATTACK_IDS.add("piiquerystringdetection");
-    BUNDLED_SUPPORTED_DATA_ATTACK_IDS.add("piihttpheaderdetection");
-    BUNDLED_SUPPORTED_DATA_ATTACK_IDS.add("piihttpbodydetection");
+    BUNDLED_SUPPORTED_DATA_ATTACK_IDS.add("cleartextpiiquerystring");
+    BUNDLED_SUPPORTED_DATA_ATTACK_IDS.add("cleartextpiihttpheader");
+    BUNDLED_SUPPORTED_DATA_ATTACK_IDS.add("cleartextpiihttpbody");
   }
 
   private static final String ATTACK_ENABLED_PREF_KEY_PREFIX = "attack_enabled_";
@@ -302,21 +302,7 @@ public class AttacksPreferenceFragment extends PreferenceFragment {
     }
     return clientPersonalIds;
   }
-  /*
-  public static Set<String> getPersonalDetails(Context context) {
-    Set<String> clientPersonalDetails = new HashSet<String>();
 
-    Location device_location = getDeviceLocation(context);
-    if (device_location != null) {
-        String latitude = String.valueOf(device_location.getLatitude());
-        String longitude = String.valueOf(device_location.getLongitude());
-
-        clientPersonalDetails.add("'device_location': {'latitude':'" + latitude + "', " +
-                "'longitude':'" + longitude + "'}");
-    }
-    return clientPersonalDetails;
-  }
-  */
   public static Set<String> getPersonalLocation(Context context) {
     Set<String> clientPersonalLocation = new HashSet<String>();
 
