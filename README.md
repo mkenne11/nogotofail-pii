@@ -1,9 +1,9 @@
-#noseyparker
+#nogotofail-pii
 nogotofail-pii (aka noseyparker) is a fork of the nogotofail tool and it's primary aim is to test Android mobile applications for network based privacy issues.
 
 Features to be added are:
 - Auto collection of PII from Android device
-- Ability for user to specify custom PII for testing 
+- Ability for userd to specify custom PII for testing 
 - Detection of PII in unencryptped traffic, including accumulated PII across an application session
 - Detection of TLS encryption not implementing forward secrecy
 - Reporting of PII issues by domain (JSON format)
