@@ -2,15 +2,16 @@
     "application-alerts": [
         {
             "app_name": "mitm-tester-app",
-            "app_type": "client=google/razor/flo:5.1.1/LMA123/4561234:user/release-keys",
             "app_version": "1",
-            "app_alerts": [
+            "app_events": [
                 {
-                    "alert_type": "INFO",
-                    "alerts": [
+                    "event_type": "INFO",
+                    "events": [
                         {
+                            "connection_id": "",
                             "domain": "abc.com",
-                            "handler": "piiquerystringdetection",
+                            "date": "",
+                            "time": "",
                             "message": "",
                             "pii_items_found": ["location", "mac_address"]
                         },
@@ -20,11 +21,12 @@
                     ]
                 },
                 {
-                    "alert_type": "WARNING",
-                    "alerts": [
+                    "event_type": "WARNING",
+                    "events": [
                       {
-                          "domain": "abc.com",
-                          "handler": "piihttpbodydetection",
+                          "connection_id": "",
+                          "date": "",
+                          "time": "",
                           "message": "",
                           "pii_items_found": ""
                       },
@@ -39,7 +41,7 @@
             "app_name": "mitm-tester-app",
             "app_version": "2",
             "app_type": "",
-            "app_alerts": [
+            "app_events": [
                 {
                     ...
                 }

@@ -294,7 +294,6 @@ class ProcessEventLog(ProcessLog):
         domain_name = ""
         if (hostname.strip() is not ""):
             domain_name = hostname.replace("www.", "")
-        # elif (path is not ""):
         else:
             #print "!!! path extract domain - " + path
             try:

@@ -1,8 +1,8 @@
 "com.fitnesstracking.app": {
-"app_alerts": [
+"app_events": [
   {
-    "alert_type": "ERROR",
-    "alerts": [
+    "event_type": "ERROR",
+    "events": [
       {
         "pii_items_found": [
           "99.11",
@@ -20,10 +20,10 @@
 "app_name": "com.fitnesstracking.app"
 },
 "com.ringtone.app": {
-"app_alerts": [
+"app_events": [
   {
-    "alert_type": "ERROR",
-    "alerts": [
+    "event_type": "ERROR",
+    "events": [
       {
         "pii_items_found": [
           "google_advertising_id"
@@ -40,10 +40,10 @@
 "app_name": "com.hypester.mtp"
 },
 "com.games33.mobile.google": {
-"app_alerts": [
+"app_events": [
   {
-    "alert_type": "CRITICAL",
-    "alerts": [
+    "event_type": "CRITICAL",
+    "events": [
       {
         "pii_items_found": [],
         "message": "MITM Success! Cert file: /tmp/._cert_ca.pem_2210234014811017974.pem",
@@ -59,8 +59,8 @@
     ]
   },
   {
-    "alert_type": "ERROR",
-    "alerts": [
+    "event_type": "ERROR",
+    "events": [
       {
         "pii_items_found": [
           "google_advertising_id"

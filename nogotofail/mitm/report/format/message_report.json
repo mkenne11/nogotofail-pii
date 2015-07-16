@@ -2,12 +2,12 @@
     "application-messages": [
         {
             "app_name": "mitm-tester-app",
-            "app_version: "1",
-            "app_type: "",
+            "app_version": "1",
+            "app_type": "",
             "connections": [
                 {
                     "hostname": "android.com",
-                    "messages": [{
+                    "messages": [
                         {
                             "message_type": "INFO",
                             "hostname": "android.com",
@@ -26,13 +26,13 @@
                             "message": "",
                             "values_found": ""
                         }
-                    }],
+                    ],
                 },
                 {
                     "host_name": "advertiser-1",
-                    "messages": {[
+                    "messages": [
                         ...
-                    ]},
+                    ],
                 },
             ],
         },
@@ -42,19 +42,19 @@
             "connections": [
                 {
                     "host_name": "android.com",
-                    "messages": [{
+                    "messages": [
                         {
                             ...
                         },
                         {
                             ...
                         }
-                    }]
+                    ]
                 },
                 {
                     ...
                 }
-            }
+            ]
         }
     ]
 }
