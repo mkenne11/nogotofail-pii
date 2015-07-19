@@ -75,17 +75,17 @@ class DataReport(object):
     """
     @property
     def json_report(self):
-        """ Property returns application alerts reporting data dictionary """
+        """ Property returns application events reporting data dictionary """
         # return json.dumps(self._report_data)
         return json.dumps(self._report_data, cls=self.MyEncoder, indent=2)
 
 
-class ApplicationMessageReport(DataReport):
+class MessageReport(DataReport):
     """ Class creates a collection of application messages based on
         application and event log information.
     """
     def __init__(self, application_log_info, event_log_info):
-        super(ApplicationMessageReport, self) \
+        super(MessageReport, self) \
             .__init__(application_log_info, event_log_info)
         # Populate class dictionary.
         self._report_data = self._parse_logs()
@@ -139,8 +139,8 @@ class ApplicationMessageReport(DataReport):
             # and sub-entries.
             if (app_name and app_name != "unknown"):
                 #print "*** App_name exists - %s" % app_name
-                # Check if an entry already exists in the application alert dictionary
-                # for current app
+                """ Check if an entry already exists in the application event
+                    dictionary for current app """
                 try:
                     app_entry = app_message_dict[app_name]
                     app_entry_exists = True
@@ -148,11 +148,11 @@ class ApplicationMessageReport(DataReport):
                 except KeyError:
                     #app_entry_exists = False
                     pass
-                # Create new app message entry
+                """ Create new app message entry """
                 #print "*** message log dictionary - %s" % message
                 #print "*** connection log dictionary - %s" % connection
                 message_entry = self._create_message_entry(message, connection)
-                # An entry for app already exists in the application alert dictionary
+                # An entry for app already exists in the application event dictionary
                 if (app_entry):
                     # If a connection list exists
                     try:
@@ -189,7 +189,7 @@ class ApplicationMessageReport(DataReport):
                         # Create connection list and append connection entry
                         connection_list = []
                         connection_list.append(connection_entry)
-                # An entry for app doesn't yet exist in the application alert dictionary
+                # An entry for app doesn't yet exist in the application event dictionary
                 else:
                     # print "*** Add new app entry: app_name - %s" % app_name
                     # Create message list & and add message entry
@@ -209,6 +209,7 @@ class ApplicationMessageReport(DataReport):
                                 }
                     app_message_dict[app_name] = app_entry
                     #print "*** app_entry dict: " + str(app_entry)
+        app_message_dict = self._scrub_dict(app_message_dict)
         return app_message_dict
 
     def _create_message_entry(self, message, connection):
@@ -240,13 +241,13 @@ class ApplicationMessageReport(DataReport):
         return connection_entry
 
 
-class ApplicationAlertReport(DataReport):
-    """ Class creates a collection of application alerts based on
+class EventReport(DataReport):
+    """ Class creates a collection of application events based on
         application and event log information.
     """
 
     def __init__(self, application_log_info, event_log_info):
-        super(ApplicationAlertReport, self) \
+        super(EventReport, self) \
             .__init__(application_log_info, event_log_info)
         self._application_messages = {}
         # Populate class dictionary.
@@ -257,10 +258,10 @@ class ApplicationAlertReport(DataReport):
             intermediate dictionary that can further processes into a JSON
             report format.
         """
-        app_alerts_dict = {}
+        app_events_dict = {}
         app_log_info = self._application_log_info.log_dict
         event_log_info = self._event_log_info.log_dict
-        IGNORE_ALERT_TYPE = ["DEBUG", "INFO"]
+        IGNORE_EVENT_TYPE = ["DEBUG", "INFO"]
 
         for key, log_item in app_log_info.iteritems():
             """ Fetch application entry fields from application and event log
@@ -268,7 +269,7 @@ class ApplicationAlertReport(DataReport):
             # print "*** Alerts: App item message: " + str(log_item)
             # Fetch message dictionary from application log if it exists
             message = log_item.get("message", {})
-            alert_type = message.get("type", "")
+            event_type = message.get("type", "")
             # Fetch client dictionary from application log if it exists
             try:
                 client = log_item["client"]
@@ -293,86 +294,87 @@ class ApplicationAlertReport(DataReport):
                 hostname = ""
                 domain = ""
             app_entry = {}
-            app_alerts_list = []
-            app_alert_entry = {}
-            alerts_list = []
+            app_events_list = []
+            app_event_entry = {}
+            events_list = []
             app_entry_exists = False
             """ If an app entry doesn't exist create an application entry dictionary \
                 and sub-entries """
             if (app_name and app_name != "unknown" and
-                    alert_type not in IGNORE_ALERT_TYPE):
+                    event_type not in IGNORE_EVENT_TYPE):
                 # print "*** App_name exists - %s" % app_name
-                """ Check if an entry already exists in the application alert dictionary
+                """ Check if an entry already exists in the application event dictionary
                     for current app """
                 try:
-                    app_entry = app_alerts_dict[app_name]
+                    app_entry = app_events_dict[app_name]
                     app_entry_exists = True
                     # If a connection list doesn't exist create one.
                 except KeyError:
-                    #app_entry_exists = False
                     pass
-                # Create a new alert_entry
-                alert_entry = self._create_alert_entry(message, connection,
+                # Create a new event_entry
+                event_entry = self._create_event_entry(message, connection,
                                                        domain)
-                # An entry for app already exists in the application alert dictionary
+                """ An entry for app already exists in the application event
+                    dictionary """
                 if (app_entry):
-                    app_alerts_list = app_alerts_dict[app_name]["app_alerts"]
-                    # Find app_alert_entry entry for current alert_type exists.
-                    for _app_alert_entry in app_alerts_dict[app_name] \
-                            ["app_alerts"]:
-                        # A app_alert_entry for alert_type exists
-                        if (_app_alert_entry["alert_type"] == alert_type):
-                            # Fetch connection entry and alerts_list references
-                            app_alert_entry = _app_alert_entry
-                            # Is it possible for the alerts_list to not exist?
-                            alerts_list = app_alert_entry["alerts"]
-                            # Append alert_entry to alerts_list
-                            alerts_list.append(alert_entry)
+                    app_events_list = app_events_dict[app_name]["app_events"]
+                    # Find app_event_entry entry for current event_type exists.
+                    for _app_event_entry in app_events_dict[app_name] \
+                            ["app_events"]:
+                        # A app_event_entry for event_type exists
+                        if (_app_event_entry["event_type"] == event_type):
+                            # Fetch connection entry and events_list references
+                            app_event_entry = _app_event_entry
+                            # Is it possible for the events_list to not exist?
+                            events_list = app_event_entry["events"]
+                            # Append event_entry to events_list
+                            events_list.append(event_entry)
                             break
-                    # Where a app_alert_entry entry for alert_type doesn't exist
-                    if not app_alert_entry:
-                        # print "For app_name '%s' dict entry doesn't yet exist for %s. Adding new alert_type entry" % (app_name, alert_type)
-                        # Create alerts_list & and add alert_entry entry
-                        alerts_list = []
-                        alerts_list.append(alert_entry)
+                    # Where a app_event_entry entry for event_type doesn't exist
+                    if not app_event_entry:
+                        # print "For app_name '%s' dict entry doesn't yet exist for %s. Adding new event_type entry" % (app_name, event_type)
+                        # Create events_list & and add event_entry entry
+                        events_list = []
+                        events_list.append(event_entry)
                         # Create connection entry
-                        alert_type_entry =  \
-                            self._create_alert_type_entry(alert_type, alerts_list)
-                        # Append connection entry to app_alerts_list
-                        app_alerts_list.append(alert_type_entry)
-                # An entry for app doesn't yet exist in the application alert
+                        event_type_entry =  \
+                            self._create_event_type_entry(event_type, events_list)
+                        # Append connection entry to app_events_list
+                        app_events_list.append(event_type_entry)
+                # An entry for app doesn't yet exist in the application event
                 # dictionary
                 else:
                     # print "*** Add new app entry: app_name - %s" % app_name
-                    # Create alerts_list & and add alert_entry
-                    alerts_list = []
-                    alerts_list.append(alert_entry)
-                    # Create alert_type_entry
-                    alert_type_entry =  \
-                        self._create_alert_type_entry(alert_type, alerts_list)
-                    # Create app_alerts_list and append alert_type_entry entry
-                    app_alerts_list = []
-                    app_alerts_list.append(alert_type_entry)
-                    # Create app_entry and add app_alerts_list
+                    # Create events_list & and add event_entry
+                    events_list = []
+                    events_list.append(event_entry)
+                    # Create event_type_entry
+                    event_type_entry =  \
+                        self._create_event_type_entry(event_type, events_list)
+                    # Create app_events_list and append event_type_entry entry
+                    app_events_list = []
+                    app_events_list.append(event_type_entry)
+                    # Create app_entry and add app_events_list
                     app_entry = {"app_name": app_name,
                                  "app_version": client["client_version"],
                                  "app_type": client["client_type"],
-                                 "app_alerts": app_alerts_list
+                                 "app_events": app_events_list
                                 }
-                    app_alerts_dict[app_name] = app_entry
+                    app_events_dict[app_name] = app_entry
                     #print "*** app_entry dict: " + str(app_entry)
-        return app_alerts_dict
+        app_events_dict = self._scrub_dict(app_events_dict)
+        return app_events_dict
 
-    def _create_alert_type_entry(self, alert_type, alerts_list):
-        """ Returns an alert_type_entry dictionary
+    def _create_event_type_entry(self, event_type, events_list):
+        """ Returns an event_type_entry dictionary
         """
-        alert_type_entry = {"alert_type": alert_type,
-                            "alerts": alerts_list
+        event_type_entry = {"event_type": event_type,
+                            "events": events_list
                            }
-        return alert_type_entry
+        return event_type_entry
 
-    def _create_alert_entry(self, message, connection, domain):
-        """ Returns an alert_entry dictionary
+    def _create_event_entry(self, message, connection, domain):
+        """ Returns an event_entry dictionary
         """
         # Fetch message pii_items_found if it exists and convert to list.
         pii_items_found = message.get("values_found", "")
@@ -380,7 +382,7 @@ class ApplicationAlertReport(DataReport):
         if pii_items_found:
             pii_items_list = (pii_items_found.replace("[", "")).replace("]", "") \
                 .split(",")
-        alert_entry = {#"alert_type": message["type"],
+        event_entry = {#"event_type": message["type"],
                        "connection_id": connection["connection_id"],
                        "date": message["date"],
                        "time": message["time"],
@@ -389,16 +391,16 @@ class ApplicationAlertReport(DataReport):
                        "handler": connection["handler"],
                        "domain": domain
                       }
-        return alert_entry
+        return event_entry
 
 
-class ApplicationAlertSummaryReport(DataReport):
-    """ Class creates a summary report of application alerts based on
+class EventSummaryReport(DataReport):
+    """ Class creates a summary report of application events based on
         application and event log information.
     """
 
     def __init__(self, application_log_info, event_log_info):
-        super(ApplicationAlertSummaryReport, self) \
+        super(EventSummaryReport, self) \
             .__init__(application_log_info, event_log_info)
         self._application_messages = {}
         # Populate class dictionary.
@@ -409,19 +411,18 @@ class ApplicationAlertSummaryReport(DataReport):
             intermediate dictionary that can further processes into a JSON
             report format.
         """
-        app_alerts_dict = {}
+        app_events_dict = {}
         app_log_info = self._application_log_info.log_dict
         event_log_info = self._event_log_info.log_dict
-        IGNORE_ALERT_TYPE = ["DEBUG", "INFO"]
+        IGNORE_EVENT_TYPE = ["DEBUG", "INFO"]
 
         for key, log_item in app_log_info.iteritems():
             """ Fetch application entry fields from application and event log
                 object """
             # print "*** Alerts: App item message: " + str(log_item)
-            # Fetch message dictionary from application log if it exists
             message = log_item.get("message", {})
             message_text = message.get("text", "")
-            alert_type = message.get("type", "")
+            event_type = message.get("type", "")
             # Fetch client dictionary from application log
             try:
                 client = log_item["client"]
@@ -429,7 +430,6 @@ class ApplicationAlertSummaryReport(DataReport):
             except KeyError:
                 client = {}
                 app_name = ""
-            # Fetch connection dictionary from application log
             try:
                 connection = log_item["connection"]
                 connection_id = connection["connection_id"]
@@ -437,7 +437,6 @@ class ApplicationAlertSummaryReport(DataReport):
             except KeyError:
                 connection = {}
                 handler = ""
-            # Fetch hostname value & domain for connection_id from event log
             try:
                 event_log_entry = event_log_info[connection_id]
                 hostname = event_log_entry["hostname"].replace("www.", "")
@@ -446,99 +445,94 @@ class ApplicationAlertSummaryReport(DataReport):
                 hostname = ""
                 domain = ""
             app_entry = {}
-            app_alerts_list = []
-            app_alert_entry = {}
-            alerts_list = []
+            app_events_list = []
+            app_event_entry = {}
+            events_list = []
             app_entry_exists = False
-            """ If an app entry doesn't exist create an application entry dictionary \
-                and sub-entries. """
+            """ If an app entry doesn't exist create an application entry
+                dictionary and sub-entries. """
             if (app_name and app_name != "unknown" and
-                    alert_type not in IGNORE_ALERT_TYPE):
-                # print "*** App_name exists - %s" % app_name
-                """ Check if an entry already exists in the application alert dictionary
-                    for current app """
+                    event_type not in IGNORE_EVENT_TYPE):
+                """ Check if an entry already exists in the application event
+                    dictionary for current app """
                 try:
-                    app_entry = app_alerts_dict[app_name]
-                    app_entry_exists = True
+                    app_entry = app_events_dict[app_name]
                     # If a connection list doesn't exist create one.
                 except KeyError:
-                    #app_entry_exists = False
                     pass
-                # Create a new alert_entry
-                alert_entry = self._create_alert_entry(message, connection,
+                # Create a new event_entry
+                event_entry = self._create_event_entry(message, connection,
                                                        domain)
-                # An entry for app already exists in the application alert dictionary
+                # An entry for app already exists in the application event dictionary
                 if (app_entry):
-                    app_alerts_list = app_alerts_dict[app_name]["app_alerts"]
-                    # Find app_alert_entry entry for current alert_type exists.
-                    for _app_alert_entry in app_alerts_dict[app_name] \
-                            ["app_alerts"]:
-                        # A app_alert_entry for alert_type exists
-                        if (_app_alert_entry["alert_type"] == alert_type):
-                            # Fetch connection entry and alerts_list references
-                            app_alert_entry = _app_alert_entry
-                            # Is it possible for the alerts_list to not exist?
-                            alerts_list = app_alert_entry["alerts"]
-                            # Append alert_entry to alerts_list
+                    app_events_list = app_events_dict[app_name]["app_events"]
+                    # Find app_event_entry entry for current event_type exists.
+                    for _app_event_entry in app_events_dict[app_name] \
+                            ["app_events"]:
+                        # A app_event_entry for event_type exists
+                        if (_app_event_entry["event_type"] == event_type):
+                            # Fetch connection entry and events_list references
+                            app_event_entry = _app_event_entry
+                            # Is it possible for the events_list to not exist?
+                            events_list = app_event_entry["events"]
+                            # Append event_entry to events_list
                             break
-
-                    if app_alert_entry:
-                        found_alert_entry = {}
-                        for _alert_entry in alerts_list:
-                            # If alert_entry not in alerts_list append it
-                            if _alert_entry["domain"] == domain and \
-                               _alert_entry["handler"] == handler and \
-                               _alert_entry["message"] == message_text:
-                                found_alert_entry = _alert_entry
+                    if app_event_entry:
+                        found_event_entry = {}
+                        for _event_entry in events_list:
+                            # If event_entry not in events_list append it
+                            if _event_entry["domain"] == domain and \
+                               _event_entry["handler"] == handler and \
+                               _event_entry["message"] == message_text:
+                                found_event_entry = _event_entry
                                 break
-                        if not found_alert_entry:
-                            alerts_list.append(alert_entry)
-                    # Where an app_alert_entry entry for alert_type doesn't exist
+                        if not found_event_entry:
+                            events_list.append(event_entry)
+                    # Where an app_event_entry entry for event_type doesn't exist
                     else:
-                        # print "For app_name '%s' dict entry doesn't yet exist for %s. Adding new alert_type entry" % (app_name, alert_type)
-                        # Create alerts_list & and add alert_entry entry
-                        alerts_list = []
-                        alerts_list.append(alert_entry)
+                        # print "For app_name '%s' dict entry doesn't yet exist for %s. Adding new event_type entry" % (app_name, event_type)
+                        # Create events_list & and add event_entry entry
+                        events_list = []
+                        events_list.append(event_entry)
                         # Create connection entry
-                        alert_type_entry =  \
-                            self._create_alert_type_entry(alert_type, alerts_list)
-                        # Append connection entry to app_alerts_list
-                        app_alerts_list.append(alert_type_entry)
-                    # If an app_alerts_list doesn't exist for the app_entry
-
-                # An entry for app doesn't yet exist in the application alert
-                # dictionary
+                        event_type_entry =  \
+                            self._create_event_type_entry(event_type, events_list)
+                        # Append connection entry to app_events_list
+                        app_events_list.append(event_type_entry)
+                    # If an app_events_list doesn't exist for the app_entry
                 else:
+                    """ An entry for app doesn't yet exist in the application event
+                        dictionary """
                     # print "*** Add new app entry: app_name - %s" % app_name
-                    # Create alerts_list & and add alert_entry
-                    alerts_list = []
-                    alerts_list.append(alert_entry)
-                    # Create alert_type_entry
-                    alert_type_entry =  \
-                        self._create_alert_type_entry(alert_type, alerts_list)
-                    # Create app_alerts_list and append alert_type_entry entry
-                    app_alerts_list = []
-                    app_alerts_list.append(alert_type_entry)
-                    # Create app_entry and add app_alerts_list
+                    # Create events_list & and add event_entry
+                    events_list = []
+                    events_list.append(event_entry)
+                    event_type_entry =  \
+                        self._create_event_type_entry(event_type, events_list)
+                    # Create app_events_list and append event_type_entry entry
+                    app_events_list = []
+                    app_events_list.append(event_type_entry)
+                    # Create app_entry and add app_events_list
                     app_entry = {"app_name": app_name,
                                  "app_version": client["client_version"],
                                  "app_type": client["client_type"],
-                                 "app_alerts": app_alerts_list
+                                 "app_events": app_events_list
                                 }
-                    app_alerts_dict[app_name] = app_entry
+                    app_events_dict[app_name] = app_entry
                     #print "*** app_entry dict: " + str(app_entry)
-        return app_alerts_dict
+        app_events_dict = self._scrub_dict(app_events_dict)
+        return app_events_dict
 
-    def _create_alert_type_entry(self, alert_type, alerts_list):
-        """ Returns an alert_type_entry dictionary
+    def _create_event_type_entry(self, event_type, events_list):
+        """ Returns an event_type_entry dictionary
         """
-        alert_type_entry = {"alert_type": alert_type,
-                            "alerts": alerts_list
+        event_type_entry = {"event_type": event_type,
+                            "events": events_list
                            }
-        return alert_type_entry
+        return event_type_entry
 
-    def _create_alert_entry(self, message, connection, domain):
-        """ Returns an alert_entry dictionary
+    def _create_event_entry(self, message, connection, domain):
+        """ Returns an event_entry dictionary
         """
         # Fetch message pii_items_found if it exists and convert to list.
         pii_items_found = message.get("values_found", "")
@@ -546,16 +540,16 @@ class ApplicationAlertSummaryReport(DataReport):
         if pii_items_found:
             pii_items_list = (pii_items_found.replace("[", "")).replace("]", "") \
                 .split(",")
-        alert_entry = {#"alert_type": message["type"]
+        event_entry = {#"event_type": message["type"]
                        "message": message["text"],
                        "pii_items_found": pii_items_list,
                        "handler": connection["handler"],
                        "domain": domain
                       }
-        return alert_entry
+        return event_entry
 
 
-class ApplicationDataReport(DataReport):
+class PIIDataReport(DataReport):
     """ Class creates a collection of application data items based on
         application and event log information.
     """
@@ -568,10 +562,10 @@ class ApplicationDataReport(DataReport):
     PII_LOCATION_MESSAGE = "PII: Location"
 
     def __init__(self, application_log_info, event_log_info):
-        super(ApplicationDataReport, self) \
+        super(PIIDataReport, self) \
             .__init__(application_log_info, event_log_info)
         self._application_messages = {}
-        self._application_alerts = {}
+        self._application_events = {}
         self._application_pii_data = {}
         # Populate class dictionary.
         self._report_data = self._parse_logs()
@@ -584,8 +578,7 @@ class ApplicationDataReport(DataReport):
         app_pii_dict = {}
         app_log_info = self._application_log_info.log_dict
         event_log_info = self._event_log_info.log_dict
-        # IGNORE_ALERT_TYPE = ["DEBUG", "INFO"]
-        IGNORE_ALERT_TYPE = ["DEBUG"]
+        IGNORE_EVENT_TYPE = ["DEBUG"]
 
         for key, log_item in app_log_info.iteritems():
             """ Fetch application entry fields from application and event log
@@ -593,9 +586,9 @@ class ApplicationDataReport(DataReport):
             # print "*** Alerts: App item message: " + str(log_item)
             # Fetch message dictionary from application log if it exists
             message = log_item.get("message", {})
-            # Fetch message text alert_type value from message object
+            # Fetch message text event_type value from message object
             message_text = message.get("text", "")
-            alert_type = message.get("type", "")
+            event_type = message.get("type", "")
             # Fetch client dictionary from application log if it exists
             client = log_item.get("client", {})
             app_name = client.get("client_application", "")
@@ -623,7 +616,7 @@ class ApplicationDataReport(DataReport):
             """ If app_name entry is of interest and is for an unencrypted pii
                 handler """
             if (app_name and app_name != "unknown" and
-                    alert_type not in IGNORE_ALERT_TYPE and
+                    event_type not in IGNORE_EVENT_TYPE and
                     handler.startswith(self.CLEARTEXT_PII_HANDLER)):
                 #TODO: Add encrypted items handler check
                 """ Create report dictionary
@@ -650,8 +643,6 @@ class ApplicationDataReport(DataReport):
                         # Get unencrypted_elements from app_domain
                         unencrypted_elements = \
                             app_domain["unencrypted_elements"]
-                        # print "!!! app_domain exists : app_name - " + \
-                        #       app_name
                         """ Else create new unencrypted_elements dictionary """
                     else:
                         unencrypted_elements = \
@@ -688,7 +679,7 @@ class ApplicationDataReport(DataReport):
                     # Create unencrypted_elements dictionary
                     unencrypted_elements = self._create_domain_elements()
                     encrypted_elements = self._create_domain_elements()
-                    # If handler is for PII in unencrypted traffic
+                    """ If handler is for PII in unencrypted traffic """
                     if (self.QUERY_STRING_HANDLER in handler):
                         unencrypted_elements["pii_query_string"] = \
                             pii_found_list
@@ -703,7 +694,6 @@ class ApplicationDataReport(DataReport):
                         self._get_domain_querystring_count(app_name, hostname)
                     key_value_count = \
                         self._get_domain_query_string_item_count(query_string_count)
-
                     """ Create app_domain dictionary and append to new
                         app_domains list """
                     app_domain = self._create_app_domain(domain,

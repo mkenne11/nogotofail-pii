@@ -20,17 +20,17 @@ if __name__ == "__main__":
     #print "\n\n"
     #print "*** Application List:" + str(application_log.applications)
     #print "\n\n"
-    app_message_report = ApplicationMessageReport(application_log, event_log)
+    app_message_report = MessageReport(application_log, event_log)
     app_messages = app_message_report.json_report
-    app_alert_report = ApplicationAlertReport(application_log, event_log)
-    app_alerts = app_alert_report.json_report
-    app_alert_summary_report = ApplicationAlertSummaryReport(application_log, event_log)
-    app_alert_summary = app_alert_summary_report.json_report
-    # print "*** Application Messages List: %s" % app_messages
+    app_event_report = EventReport(application_log, event_log)
+    app_events = app_event_report.json_report
+    app_event_summary_report = EventSummaryReport(application_log, event_log)
+    app_event_summary = app_event_summary_report.json_report
+    print "*** Application Messages: %s" % app_messages
+    print "\n\n"
+    # print "*** Application Events : %s" % app_events
     # print "\n\n"
-    # print "*** Application Alert List: %s" % app_alerts
-    # print "\n\n"
-    # print "*** Application Alert Summary: %s" % app_alert_summary
+    # print "*** Application Event Summary: %s" % app_event_summary
     # print "\n\n\n\n"
-    app_data_report = ApplicationDataReport(application_log, event_log)
-    print "*** Application PII Data: %s" % app_data_report.json_report
+    # app_pii_data_report = PIIDataReport(application_log, event_log)
+    # print "*** Application PII Data: %s" % app_pii_data_report.json_report
