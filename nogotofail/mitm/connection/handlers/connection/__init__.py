@@ -27,3 +27,4 @@ from droptls import DropTLS
 from ccs import EarlyCCS
 from serverkeyreplace import ServerKeyReplacementMITM
 from noforwardsecrecy import NoForwardSecrecy
+from sunsetsha1 import SunsetSHA1

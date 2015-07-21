@@ -69,6 +69,7 @@ public class AttacksPreferenceFragment extends PreferenceFragment {
     BUNDLED_SUPPORTED_DATA_ATTACK_IDS.add("cleartextpiihttpheader");
     BUNDLED_SUPPORTED_DATA_ATTACK_IDS.add("cleartextpiihttpbody");
     BUNDLED_SUPPORTED_DATA_ATTACK_IDS.add("noforwardsecrecy");
+    BUNDLED_SUPPORTED_DATA_ATTACK_IDS.add("sunsetsha1");
   }
 
   private static final String ATTACK_ENABLED_PREF_KEY_PREFIX = "attack_enabled_";
