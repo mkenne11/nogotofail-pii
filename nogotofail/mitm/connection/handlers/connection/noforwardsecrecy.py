@@ -20,17 +20,17 @@ from nogotofail.mitm.event import connection
 from nogotofail.mitm.connection.handlers.connection import LoggingHandler
 from nogotofail.mitm import util
 from nogotofail.mitm.util import tls
-from nogotofail.mitm.util.tls.types import Alert, Extension, HandshakeMessage, TlsRecord
+from nogotofail.mitm.util.tls.types import HandshakeMessage, TlsRecord
 
 
 @handler(handlers, default=True)
 class NoForwardSecrecy(LoggingHandler):
-    """ Class detect negotiated TLS cipher suites which don't use key exchange
-        techniques supporting forward secrecy i.e. DHE, ECDHE """
+
     name = "noforwardsecrecy"
     description = (
-        "Detects server cipher suites which don't support Diffie-Hellman "
-        "key exchange")
+        "Detects selected server cipher suites which don't support "
+        "Diffie-Hellman key exchange (DHE or ECDHE) i.e. in "
+        "SERVER_HELLO response")
 
     buffer = ""
 
@@ -48,21 +48,24 @@ class NoForwardSecrecy(LoggingHandler):
             index = 0
             while index < len(response):
                 record, size = TlsRecord.from_stream(response[index:])
-                version = record.version
                 for i, message in enumerate(record.messages):
-                    # Check if Server Hello message
-                    if (isinstance(message, tls.types.HandshakeMessage)
-                           and message.type == HandshakeMessage.TYPE.SERVER_HELLO):
+                    """ Check for Server Hello message """
+                    if (isinstance(message, tls.types.HandshakeMessage) and
+                            message.type == HandshakeMessage.TYPE.SERVER_HELLO):
                         server_hello = message.obj
                         selected_cipher = str(server_hello.cipher)
-                        # self.log(logging.DEBUG, "!!! NoForwardSecrecy: on_response > " +
-                        # "cipher - " + selected_cipher)
-                        """ Check if Ephemeral Diffie-Hellman key exchange is used """
+
+                        _connection = self.connection
+                        destination = _connection.hostname if _connection.hostname \
+                            else _connection.server_addr
+                        debug_message = ["Selected cipher \"", selected_cipher,
+                            "\" for connection to \"", destination, "\""]
+                        self.log(logging.DEBUG, "".join(debug_message))
+                        """ Check if Ephemeral Diffie-Hellman key exchange is
+                            used in selected cipher """
                         fs_key_strings = ["DHE", "ECDHE"]
                         if not [fs_string for fs_string in fs_key_strings
                                 if fs_string in selected_cipher]:
-                            # self.log(logging.DEBUG, "!!! NoForwardSecrecy: on_response > " +
-                            #          "No forward secrecy DHE used!!!")
                             error_message = \
                                 ["Cipher suite key exhange technqiue doesn't ",
                                  "support forward secrecy. ",
@@ -74,7 +77,6 @@ class NoForwardSecrecy(LoggingHandler):
                                 util.vuln.VULN_NO_FORWARD_SECRECY)
                         return response
                 index += size
-
         except ValueError:
             # Failed to parse TLS, this is probably due to a short read of a TLS
             # record. Buffer the response to try and get more data.
