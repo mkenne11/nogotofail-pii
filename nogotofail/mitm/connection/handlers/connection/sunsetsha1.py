@@ -52,11 +52,12 @@ class SunsetSHA1(LoggingHandler):
             crt_CN = subject.CN
             crt_not_before = server_cert.get_notBefore()
             crt_not_after = server_cert.get_notAfter()
-            debug_message = "Cert attribute: " + crt_CN + \
-                "; notBefore " + crt_not_before + \
-                "; notAfter " + crt_not_after + \
-                "; signature_algorithm " + crt_signature_algorithm
-            self.log(logging.DEBUG, debug_message)
+            debug_message = \
+                ["Certicate using SHA-1 with attributes - CN \"", crt_CN,
+                 "\", notBefore \"", crt_not_before,
+                 "\", notAfter \"", crt_not_after,
+                 "\", signature_algorithm \"", crt_signature_algorithm, "\""]
+            self.log(logging.DEBUG, "".join(debug_message))
 
             crt_not_after = datetime.strptime(crt_not_after, CRT_DATE_FORMAT)
             """ Raise notification if certificate expires after a Chrome sunset
