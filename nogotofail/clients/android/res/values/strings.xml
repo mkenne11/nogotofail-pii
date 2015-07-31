@@ -94,12 +94,9 @@
     <string name="vuln_sslstrip">Downgrade of HTTPS to HTTP</string>
     <!-- Vulnerability: XMPP STARTTLS strip -->
     <string name="vuln_xmppstarttlsstrip">Downgrade of STARTTLS-protected XMPP to cleartext</string>
-    <!-- Vulnerability: Cleartext Personal IDs in Query String -->
-    <string name="vuln_cleartextpiiquerystring">PII: Cleartext PII detected in HTTP query string</string>
-    <!-- Vulnerability: PII dectected in HTTP headers -->
-    <string name="vuln_cleartextpiihttpheader">PII: Cleartext PII detected in HTTP headers</string>
-    <!-- Vulnerability: PII dectected in HTTP message body -->
-    <string name="vuln_cleartextpiihttpbody">PII: Cleartext PII detected in HTTP message body</string>
+
+    <!-- Vulnerability: PII detected in HTTP content -->
+    <string name="vuln_httppii">Cleartext PII detected in HTTP content</string>
     <!-- Vulnerability: Cipher key exchange doesn't support forward secrecy -->
     <string name="vuln_noforwardsecrecy">Cipher key exchange doesn\'t support forward secrecy</string>
     <!-- Vulnerability: Certificate uses SHA-1 and expires after a Chrome sunset date -->
@@ -170,12 +167,8 @@
     <string name="attack_title_xmppstarttlsstrip">XMPP STARTTLS strip</string>
     <string name="attack_summary_xmppstarttlsstrip">Downgrade of STARTTLS-protected XMPP to cleartext</string>
 
-    <string name="attack_title_cleartextpiiquerystring">PII: Cleartext PII in HTTP query string</string>
-    <string name="attack_summary_cleartextpiiquerystring">PII: Cleartext PII appears in HTTP query string</string>
-    <string name="attack_title_cleartextpiihttpheader">PII: Cleartext PII in HTTP headers</string>
-    <string name="attack_summary_cleartextpiihttpheader">PII: Cleartext PII appears in HTTP headers</string>
-    <string name="attack_title_cleartextpiihttpbody">PII: Cleartext PII in HTTP message body</string>
-    <string name="attack_summary_cleartextpiihttpbody">PII: Cleartext PII appears in HTTP message body</string>
+    <string name="attack_title_httppii">Cleartext PII in HTTP content</string>
+    <string name="attack_summary_httppii">Cleartext PII appears in HTTP content</string>
     <string name="attack_title_noforwardsecrecy">Cipher key exchange doesn\'t support forward secrecy</string>
     <string name="attack_summary_noforwardsecrecy">Cipher suite key exchange technique doesn\'t support forward secrecy.</string>
     <string name="attack_title_sunsetsha1">Certificate uses SHA-1 and expires after sunset date</string>

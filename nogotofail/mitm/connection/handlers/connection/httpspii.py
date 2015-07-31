@@ -11,8 +11,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 '''
 import logging
-from nogotofail.mitm.connection.handlers.connection import LoggingHandler
 from nogotofail.mitm.connection.handlers.connection import handlers
+from nogotofail.mitm.connection.handlers.connection import LoggingHandler
 from nogotofail.mitm.connection.handlers.store import handler
 from nogotofail.mitm.event import connection
 from nogotofail.mitm import util
@@ -26,15 +26,9 @@ class PIIDetectionHandler(LoggingHandler):
 
     name = "piidetection"
     description = "Detect HTTPS requests and responses and allow \
-        classes that inherit from this to process"
+        classes that inherit from this to process content"
 
-    # HTTP headers to ignore not containing PII
-    IGNORE_HEADERS = ["host", "connection", "content-length", "accept",
-                      "user-agent", "content-type", "accept-encoding",
-                      "accept-language", "accept-charset"]
-    # HTTP request and response valid "content-type" header values
-    VALID_CONTENT_TYPES = ["text/html", "application/json",
-                           "text/plain", "text/xml", "application/xml"]
+    ssl = False
 
     def on_ssl(self, client_hello):
         self.ssl = True
@@ -45,26 +39,39 @@ class PIIDetectionHandler(LoggingHandler):
 
     def on_request(self, request):
         http = util.http.parse_request(request)
-        if self.ssl and http and not http.error_code:
+        if http and not http.error_code:
             host = http.headers.get("host", self.connection.server_addr)
             if not self.connection.hostname:
                 self.connection.hostname = host
-            self.on_https_request(http)
+            # Call the specific http request handler based on the use of TLS
+            if self.ssl:
+                self.on_https_request(http)
+            else:
+                self.on_http_request(http)
         return request
 
+    def on_http_request(self, http):
+        comment = "Code to be added in class inheriting this."
+
     def on_https_request(self, http):
-        host = http.headers.get("host", self.connection.server_addr)
+        comment = "Code to be added in class inheriting this."
 
     def on_response(self, response):
         http = util.http.parse_response(response)
-        if self.ssl and http:
-            headers = dict(http.getheaders())
-            host = headers.get("host", self.connection.server_addr)
-            if not self.connection.hostname:
-                self.connection.hostname = host
-            if not self.connection.ssl:
+        headers = dict(http.getheaders())
+        host = headers.get("host", self.connection.server_addr)
+        if not self.connection.hostname:
+            self.connection.hostname = host
+        # Call the specific http response handler based on the use of TLS
+        if http:
+            if self.ssl:
                 self.on_https_response(http)
+            else:
+                self.on_http_response(http)
         return response
+
+    def on_http_response(self, http):
+        comment = "Code to be added in class inheriting this."
 
     def on_https_response(self, http):
         comment = "Code to be added in class inheriting this."
@@ -125,14 +132,27 @@ class PIIDetectionHandler(LoggingHandler):
 
 
 @handler(handlers, default=True)
-class EncryptedPIIDetectionHandler(PIIDetectionHandler):
+class HTTPSPIIDetectionHandler(PIIDetectionHandler):
 
-    name = "encryptedpii"
+    name = "httpspii"
     description = (
         "Testing to see if encrypted PII is present in HTTPS content.")
     MITM_CA = "./ca-chain-cleartext.key.cert.pem"
     ca = util.CertificateAuthority(MITM_CA)
     certificate = None
+
+    def on_http_request(self, http):
+        client = self.connection.app_blame.clients.get(self.connection
+                        .client_addr)
+        if (client):
+            headers = dict(http.headers)
+            host = headers.get("host", self.connection.server_addr)
+            content_type = headers.get("content-type", "")
+            debug_message = [
+                 "*httpspii > ",
+                 "on_http_request: host - ",
+                 host, ", path - ", http.path]
+            self.log(logging.DEBUG, "".join(debug_message))
 
     def on_https_request(self, http):
         client = self.connection.app_blame.clients.get(self.connection
@@ -160,20 +180,20 @@ class EncryptedPIIDetectionHandler(PIIDetectionHandler):
 
             # Search for PII in HTTP query string
             if (query_string):
-                self._test_pii_query_string(query_string, combined_pii, url)
+                self._alert_on_pii_query_string(query_string, combined_pii, url)
             # Search for PII in HTTP headers
             valid_header_text = ""
             # Remove headers which won't contain PII
             valid_headers = {k: v for k, v in headers.iteritems()
-                             if k not in self.IGNORE_HEADERS}
+                             if k not in PIIDetectionUtilities.IGNORE_HEADERS}
             if (valid_headers):
                 valid_header_text = \
                     str(valid_headers.values()).translate(None, "[']")
-                self._test_pii_headers(valid_header_text, combined_pii, url)
+                self._alert_on_pii_headers(valid_header_text, combined_pii, url)
             # Search for PII in HTTP message body
-            if (content_type in self.VALID_CONTENT_TYPES):
+            if (content_type in PIIDetectionUtilities.VALID_CONTENT_TYPES):
                 msg_content = self._get_request_message_content(http)
-                self._test_pii_request_message_body(msg_content, combined_pii, url)
+                self._alert_on_pii_request_message_body(msg_content, combined_pii, url)
 
     def on_https_response(self, http):
         client = self.connection.app_blame.clients.get(self.connection \
@@ -186,13 +206,13 @@ class EncryptedPIIDetectionHandler(PIIDetectionHandler):
             #    "*** EncryptedPII > ", "TLS on_response method: host - ", host,
             #    ", content_type - ", content_type]
             # self.log(logging.DEBUG, "".join(debug_message))
-            if (content_type in self.VALID_CONTENT_TYPES):
+            if (content_type in PIIDetectionUtilities.VALID_CONTENT_TYPES):
                 http_content = self._get_response_message_content(http)
                 url = ""
                 # Fetched combined PII collection
                 combined_pii = client.combined_pii
                 # Check for PII items in HTTP response message body
-                self._test_pii_response_message_body(self, http_content,
+                self._alert_on_pii_response_message_body(http_content,
                                                      combined_pii, url)
 
     def on_certificate(self, server_cert):
@@ -202,7 +222,7 @@ class EncryptedPIIDetectionHandler(PIIDetectionHandler):
                 cn = v
         debug_message = ["Generating MitM TLS certificate with CN - ", cn]
         self.log(logging.DEBUG, "".join(debug_message))
-    
+
         extensions = [server_cert.get_extension(i)
                       for i in range(server_cert.get_extension_count())]
         altnames = [extension for extension in extensions
@@ -213,7 +233,7 @@ class EncryptedPIIDetectionHandler(PIIDetectionHandler):
 
     """ Private methods checking for PII with HTTP content
     """
-    def _test_pii_query_string(self, query_string, combined_pii, url):
+    def _alert_on_pii_query_string(self, query_string, combined_pii, url):
         """ Test and alert on instances of PII found in query string
         """
         pii_identifiers_found = []
@@ -259,7 +279,7 @@ class EncryptedPIIDetectionHandler(PIIDetectionHandler):
             self.log_event(logging.INFO, connection.AttackEvent(
                            self.connection, self.name, True, url))
 
-    def _test_pii_headers(self, header_text, combined_pii, url):
+    def _alert_on_pii_headers(self, header_text, combined_pii, url):
         """ Test and alert on instances of PII found in HTTP headers
         """
         pii_identifiers_found = []
@@ -305,7 +325,7 @@ class EncryptedPIIDetectionHandler(PIIDetectionHandler):
             self.log_event(logging.INFO, connection.AttackEvent(
                            self.connection, self.name, True, url))
 
-    def _test_pii_request_message_body(self, msg_content, combined_pii, url):
+    def _alert_on_pii_request_message_body(self, msg_content, combined_pii, url):
         """ Test and alert on instances of PII found in HTTP message body
         """
         pii_identifiers_found = []
@@ -351,7 +371,7 @@ class EncryptedPIIDetectionHandler(PIIDetectionHandler):
             self.log_event(logging.INFO, connection.AttackEvent(
                            self.connection, self.name, True, url))
 
-    def _test_pii_response_message_body(self, msg_content, combined_pii, url):
+    def _alert_on_pii_response_message_body(self, msg_content, combined_pii, url):
         """ Test and alert on instances of PII found in HTTP message body
         """
         pii_identifiers_found = []
