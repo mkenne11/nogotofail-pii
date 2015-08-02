@@ -64,10 +64,7 @@ public class AttacksPreferenceFragment extends PreferenceFragment {
     BUNDLED_SUPPORTED_DATA_ATTACK_IDS.add("imagereplace");
     BUNDLED_SUPPORTED_DATA_ATTACK_IDS.add("sslstrip");
 
-    // PII attack identifiers
-    BUNDLED_SUPPORTED_DATA_ATTACK_IDS.add("cleartextpiiquerystring");
-    BUNDLED_SUPPORTED_DATA_ATTACK_IDS.add("cleartextpiihttpheader");
-    BUNDLED_SUPPORTED_DATA_ATTACK_IDS.add("cleartextpiihttpbody");
+    BUNDLED_SUPPORTED_DATA_ATTACK_IDS.add("httppii");
     BUNDLED_SUPPORTED_DATA_ATTACK_IDS.add("noforwardsecrecy");
     BUNDLED_SUPPORTED_DATA_ATTACK_IDS.add("sunsetsha1");
   }

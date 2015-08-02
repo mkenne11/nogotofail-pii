@@ -161,9 +161,15 @@ class HttpDetectionMessageBodyHandler(DataHandler):
     description = "Detect plaintext HTTP requests and responses and allow \
         classes that inherit from this to process"
 
+    ssl = False
+
+    def on_ssl(self, client_hello):
+        self.ssl = True
+        return True
+
     def on_request(self, request):
         http = util.http.parse_request(request)
-        if http and not http.error_code:
+        if http and not self.ssl and not http.error_code:
             host = http.headers.get("host", self.connection.server_addr)
             if not self.connection.hostname:
                 self.connection.hostname = host
@@ -172,6 +178,7 @@ class HttpDetectionMessageBodyHandler(DataHandler):
 
     def on_http_request(self, http):
         host = http.headers.get("host", self.connection.server_addr)
+        """
         self.log(logging.ERROR, "HTTP request %s %s"
                  % (http.command, host + http.path))
         self.log_event(
@@ -180,6 +187,7 @@ class HttpDetectionMessageBodyHandler(DataHandler):
                 self.connection, self.name, True,
                 host + http.path))
         self.connection.vuln_notify(util.vuln.VULN_CLEARTEXT_HTTP)
+        """
 
     def on_response(self, response):
         http = util.http.parse_response(response)
@@ -195,7 +203,7 @@ class HttpDetectionMessageBodyHandler(DataHandler):
     def on_http_response(self, http):
         comment = "Code to be added in class inheriting this."
 
-    def get_request_message_content(self, http):
+    def _get_request_message_content(self, http):
         http_content = ""
         headers = dict(http.headers)
         content_len = int(headers.get("content-length", 0))
@@ -204,7 +212,7 @@ class HttpDetectionMessageBodyHandler(DataHandler):
             http_content = http.rfile.read(content_len)
         return http_content
 
-    def get_response_message_content(self, http):
+    def _get_response_message_content(self, http):
         """ Method returns the HTTP message body content. Compressed content is
             uncompressed and content is truncated to a managable size """
         CHUNK_SIZE = 1024
