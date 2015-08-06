@@ -1,26 +1,37 @@
+// Android app identifier
 "com.ringtones.app": {
+    // Domains used by application for which PII is transmitted between the app
+    // and online services
     "app_domains": [
       {
+        // Domain PII items were found in.
         "domain": "ads.mopub.com",
+        // Accumulated PII sent over unencrypted channel (non-HTTPS) for domain
         "unencrypted_elements": {
           "pii_query_string": [
             "google_advertising_id"
           ]
         },
-        "query_strings": {
-          "count": {
-            "id=f02dfc9b095140a297efec753e947b7c&dn=asus%2CNexus%207%2Crazor": "11",
-            "cid=47795c6f1afe4cd7a7f39ca6fd54d5e7&city=Mountain%20View&ckv=2&country_code=US&os=Android&osv=5.1.1": "4"
-          },
-          "key_value_count": {
-            "req=a54235ff7ea124387b33b590cdd3eb098": "4",
-            "dn=samsun%2CGalaxy%207%2CTab": "11",
-            "osv=5.1.1": "4",
-            "city=Mountain%20View": "4",
-            "id=f02df4fda83db32e147efec753e947b7c": "11",
-            "country_code=US": "4",
-            "cid=47799eaf1afe4cd81bf39ca62d54d5e7": "4",
-            "os=Android": "4",
+        // Accumulated PII sent over encrypted channel (HTTPS)
+        "encrypted_elements": {
+          "pii_http_body": [
+            "android_id",
+            "mac_address"
+          ]
+        },
+        // Accumulated query-string parameter/value pairs sent over unencrypted
+        // channel (HTTPS) and number of requests they appeared. Even non-PII items
+        // could allow tracking if persistant over multiple requests
+        "unencrypted_query_strings": {
+            "key_value_count": {
+              "req=a54235ff7ea124387b33b590cdd3eb098": "4",
+              "dn=samsun%2CGalaxy%207%2CTab": "11",
+              "osv=5.1.1": "4",
+              "city=Mountain%20View": "4",
+              "id=f02df4fda83db32e147efec753e947b7c": "11",
+              "country_code=US": "4",
+              "cid=47799eaf1afe4cd81bf39ca62d54d5e7": "4",
+              "os=Android": "4",
           }
         }
       }
@@ -36,6 +47,12 @@
         "unencrypted_elements": {
           "pii_query_string": [
             "google_advertising_id"
+          ]
+        },
+        "encrypted_elements": {
+          "pii_http_body": [
+            "android_id",
+            "email_1"
           ]
         }
       },

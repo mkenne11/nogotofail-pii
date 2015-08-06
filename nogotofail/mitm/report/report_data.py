@@ -17,6 +17,9 @@ limitations under the License.
 """ Classes create data reports based on nogotofail application and event
     logs.
 """
+
+# from nogotofail.mitm import util
+# from nogotofail.mitm.util import PIIDetectionUtilities
 import abc
 import json
 import re
@@ -84,6 +87,7 @@ class MessageReport(DataReport):
     """ Class creates a collection of application messages based on
         application and event log information.
     """
+
     def __init__(self, application_log_info, event_log_info):
         super(MessageReport, self) \
             .__init__(application_log_info, event_log_info)
@@ -553,13 +557,16 @@ class PIIDataReport(DataReport):
     """ Class creates a collection of application data items based on
         application and event log information.
     """
-    CLEARTEXT_PII_HANDLER = "cleartextpii"
-    QUERY_STRING_HANDLER = "querystring"
-    HTTP_HEADER_HANDLER = "httpheader"
-    HTTP_BODY_HANDLER = "httpbody"
-    PII_IDENTIFIERS_MESSAGE = "PII: Personal IDs"
-    PII_DETAILS_MESSAGE = "PII: Personal details"
-    PII_LOCATION_MESSAGE = "PII: Location"
+    HTTP_PII_HANDLER = "httppii"
+    HTTPS_PII_HANDLER = "httpspii"
+    PII_IDENTIFIERS_MESSAGE = ": Personal IDs"
+    PII_DETAILS_MESSAGE = ": Personal details"
+    PII_LOCATION_MESSAGE = ": Location"
+
+    CAVEAT_PII = "PII-"
+    CAVEAT_PII_QRY_STRING = "PII-QueryString:"
+    CAVEAT_PII_HEADER = "PII-Header:"
+    CAVEAT_PII_MSG_BODY = "PII-Message-Body:"
 
     def __init__(self, application_log_info, event_log_info):
         super(PIIDataReport, self) \
@@ -581,8 +588,8 @@ class PIIDataReport(DataReport):
         IGNORE_EVENT_TYPE = ["DEBUG"]
 
         for key, log_item in app_log_info.iteritems():
-            """ Fetch application entry fields from application and event log
-                object """
+            # Fetch application entry fields from application and event log
+            # object
             # print "*** Alerts: App item message: " + str(log_item)
             # Fetch message dictionary from application log if it exists
             message = log_item.get("message", {})
@@ -597,117 +604,118 @@ class PIIDataReport(DataReport):
             # Fetch connection dictionary from application log if it exists
             connection = log_item.get("connection", {})
             connection_id = connection.get("connection_id", "")
-            handler = connection.get("handler", "")
+            handler = connection.get("handler", "").strip()
             # Fetch hostname value for connection_id from event log
             event_log_entry = event_log_info.get(connection_id, {})
             hostname = event_log_entry.get("hostname", "")
             # print "!!! event_log_entry - " + str(event_log_entry)
             # Determine connection domain based on hostname & URL path
-            domain = event_log_entry.get("domain", "")
+            domain = event_log_entry.get("domain", hostname)
 
             values_found = message.get("values_found", "")
-            if (self.PII_LOCATION_MESSAGE in message_text):
-                pii_information_found = "[location]"
-            else:
-                pii_information_found = values_found
-            pii_found_list  = []
-            pii_found_list = str(str(pii_information_found.replace("[","")) \
-                .replace("]","")).split(",")
-            """ If app_name entry is of interest and is for an unencrypted pii
-                handler """
-            if (app_name and app_name != "unknown" and
-                    event_type not in IGNORE_EVENT_TYPE and
-                    handler.startswith(self.CLEARTEXT_PII_HANDLER)):
-                #TODO: Add encrypted items handler check
-                """ Create report dictionary
-                """
-                # Create element_item dictionary
-                # print "*** hostname = %s; element_item created = %s " % \
-                #    (hostname, str(element_item))
-                """ If app_item with app_name exists in app_pii_dict """
-                app_domain_qs_list = ""
+            pii_found_list = []
+            if (values_found):
+                if (self.PII_LOCATION_MESSAGE in message_text):
+                    pii_information_found = "[location]"
+                else:
+                    pii_information_found = values_found
+                pii_found_list = []
+                pii_found_list = str(str(str(pii_information_found.replace("[", ""))
+                                     .replace("]", "")).replace(" ", "")).split(",")
+            # If app_name entry is of interest and is for an unencrypted pii
+            # handler
+            if ( app_name and app_name != "unknown" and
+                 event_type not in IGNORE_EVENT_TYPE and
+                 ( self.HTTP_PII_HANDLER in handler or
+                   self.HTTPS_PII_HANDLER in handler ) and
+                 self.CAVEAT_PII in message_text ):
+                # If app_item with app_name exists in app_pii_dict
                 try:
                     app_item = app_pii_dict[app_name]
-                    """ Fetch app_domain object from app_domains list """
+                    # Fetch app_domain object from app_domains list
                     app_domain_list = app_item["app_domains"]
                     app_domain = {}
                     for _app_domain in app_domain_list:
                         if (_app_domain["domain"] == domain):
                             app_domain = _app_domain
-                            # print ("*** (Match) app_domain hostname - ", hostname,
-                            #       " found")
                             break
-                    """ If app_domain dictionary exists fetch unencrypted_elements
-                        dictionary """
+                    # If app_domain dictionary exists fetch element dictionaries
                     if app_domain:
-                        # Get unencrypted_elements from app_domain
-                        unencrypted_elements = \
-                            app_domain["unencrypted_elements"]
-                        """ Else create new unencrypted_elements dictionary """
+                        unencrypted_elements = app_domain["unencrypted_elements"]
+                        encrypted_elements = app_domain["encrypted_elements"]
+                    # if not app_domain:
                     else:
-                        unencrypted_elements = \
-                            self._create_domain_elements()
+                        unencrypted_elements = self._create_domain_elements()
+                        encrypted_elements = self._create_domain_elements()
+                    if self.HTTP_PII_HANDLER in handler:
+                        item_elements = unencrypted_elements
+                    elif self.HTTPS_PII_HANDLER in handler:
+                        item_elements = encrypted_elements
+                    # If pii were found add the pii items to the encrypted/
+                    # unencrypted items for the current app/domain.
                     if (pii_found_list):
                         # If unencrypted_element exists fetch it
-                        if (self.QUERY_STRING_HANDLER in handler):
-                            unencrypted_elements["pii_query_string"] = \
-                                list(set(unencrypted_elements["pii_query_string"] \
+                        if (self.CAVEAT_PII_QRY_STRING in message_text):
+                            item_elements["pii_query_string"] = \
+                                list(set(item_elements["pii_query_string"]
                                 + pii_found_list))
-                        elif (self.HTTP_HEADER_HANDLER in handler):
-                            unencrypted_elements["pii_http_header"] = \
-                                list(set(unencrypted_elements["pii_http_header"] \
+                        elif (self.CAVEAT_PII_HEADER in message_text):
+                            item_elements["pii_http_header"] = \
+                                list(set(item_elements["pii_http_header"]
                                 + pii_found_list))
-                        elif (self.HTTP_BODY_HANDLER in handler):
-                            unencrypted_elements["pii_http_body"] = \
-                                list(set(unencrypted_elements["pii_http_body"] \
+                        elif (self.CAVEAT_PII_MSG_BODY in message_text):
+                            item_elements["pii_http_body"] = \
+                                list(set(item_elements["pii_http_body"]
                                 + pii_found_list))
-                    """ If app_domain doesn't exist create it and append to
-                        app_domains list """
+                    # If app_domain doesn't exist create it and append to
+                    # app_domains list
                     if not app_domain:
                         # Fetch list of query_strings by app_name and hostname
                         query_string_count = \
-                            self._get_domain_querystring_count \
-                                    (app_name, hostname)
+                            self._get_domain_querystring_count(app_name,
+                                                               hostname)
                         key_value_count = \
-                            self._get_domain_query_string_item_count(query_string_count)
+                            self._get_domain_querystring_item_count \
+                                                        (query_string_count)
                         app_domain = self._create_app_domain(domain,
                                 unencrypted_elements, encrypted_elements, \
                                 query_string_count, key_value_count)
                         app_domain_list.append(app_domain)
                 except KeyError:
-                    """ If app_item does not exist in app_pii_dict create it """
-                    # Create unencrypted_elements dictionary
+                    # If app_item does not exist in app_pii_dict create it
                     unencrypted_elements = self._create_domain_elements()
                     encrypted_elements = self._create_domain_elements()
-                    """ If handler is for PII in unencrypted traffic """
-                    if (self.QUERY_STRING_HANDLER in handler):
-                        unencrypted_elements["pii_query_string"] = \
-                            pii_found_list
-                    elif (self.HTTP_HEADER_HANDLER in handler):
-                        unencrypted_elements["pii_http_header"] = \
-                            pii_found_list
-                    elif (self.HTTP_BODY_HANDLER in handler):
-                        unencrypted_elements["pii_http_body"] = \
-                            pii_found_list
+                    if self.HTTP_PII_HANDLER in handler:
+                        item_elements = unencrypted_elements
+                    elif self.HTTPS_PII_HANDLER in handler:
+                        item_elements = encrypted_elements
+                    # If pii were found add the pii items to the encrypted/
+                    # unencrypted items for the current app/domain.
+                    if (self.CAVEAT_PII_QRY_STRING in message_text):
+                        item_elements["pii_query_string"] = pii_found_list
+                    elif (self.CAVEAT_PII_HEADER in message_text):
+                        item_elements["pii_http_header"] = pii_found_list
+                    elif (self.CAVEAT_PII_MSG_BODY in message_text):
+                        item_elements["pii_http_body"] = pii_found_list
+                    query_string_count = {}
+                    key_value_count = {}
                     # Fetch list of query_strings by app_name and hostname
                     query_string_count = \
                         self._get_domain_querystring_count(app_name, hostname)
                     key_value_count = \
-                        self._get_domain_query_string_item_count(query_string_count)
-                    """ Create app_domain dictionary and append to new
-                        app_domains list """
+                        self._get_domain_querystring_item_count(query_string_count)
+                    # Create app_domain dictionary and append to new
+                    # app_domains list
                     app_domain = self._create_app_domain(domain,
-                            unencrypted_elements, encrypted_elements,
-                            query_string_count, key_value_count)
+                                    unencrypted_elements, encrypted_elements,
+                                    query_string_count, key_value_count)
                     app_domain_list = []
                     app_domain_list.append(app_domain)
                     app_item = self._create_app_item(app_name, app_version,
                                                      app_type, app_domain_list)
                     if (domain):
                         app_pii_dict[app_name] = app_item
-                    else:
-                        print "No domain for app_name - " + app_name
-        app_pii_dict =  self._scrub_dict(app_pii_dict)
+        app_pii_dict = self._scrub_dict(app_pii_dict)
         return app_pii_dict
 
     def _create_app_item(self, app_name, app_version, app_type, app_domains):
@@ -728,8 +736,8 @@ class PIIDataReport(DataReport):
         app_domain = {"domain": domain,
                       "unencrypted_elements": unencrypted_elements,
                       "encrypted_elements": encrypted_elements,
-                      "query_strings": {
-                          "count": query_string_count,
+                      "unencrypted_query_strings": {
+                          # "count": query_string_count,
                           "key_value_count": key_value_count
                          }
                      }
@@ -740,8 +748,7 @@ class PIIDataReport(DataReport):
         """
         domain_elements = {"pii_query_string": [],
                            "pii_http_header": [],
-                           "pii_http_body": [],
-                           "query_string_count": {}
+                           "pii_http_body": []
                           }
         return domain_elements
 
@@ -753,7 +760,7 @@ class PIIDataReport(DataReport):
                        }
         return element_item
 
-    def _get_domain_query_string_item_count(self, query_strings):
+    def _get_domain_querystring_item_count(self, query_strings):
         """ Returns a list of query string parameter/value pairs in
             unencrypted requets and a count
         """
@@ -787,13 +794,14 @@ class PIIDataReport(DataReport):
                             log_item["application"]["name"] == app_name]
         for connection_item in connection_items:
             for attack in connection_item["attacks"]:
+                query_string = ""
                 if (attack["data"]):
                     path_items = attack["data"].split("?")
                     try:
                         query_string = path_items[1]
                         # print "### found qs in count - " + query_string
                     except IndexError:
-                        query_string = ""
+                        pass
                 if (query_string):
                     """ If query_string already in query_string_dict increment count """
                     try:

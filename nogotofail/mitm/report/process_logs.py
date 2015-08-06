@@ -186,8 +186,9 @@ class ProcessEventLog(ProcessLog):
         """
         re_attack_status = re.compile('\"success\"\:\s*\"*([\w\.]+)\"*\,')
         # re_data = re.compile('\"data\"\:\s*\"*([\w\.\?\/\-\=\&\@\%]+)\"*\,')
-        re_data_1 = re.compile('\"data\"\:\s*\"*([\w\.\?\/\-\_\,\=\&\@\+\:\%\~\!\;\*\#\$]+)\"\,')
-        re_data_2 = re.compile('\"data\"\:\s*([null]+)\,')
+        re_data = re.compile('\"data\"\:\s*\"*([\w\.\?\/\-\_\,\=\&\@\+\:\%\~\!\;\*\#\$]+)\"\,')
+        # re_data_2 = re.compile('\"data\"\:\s*([null]+)\,')
+        re_data_empty = re.compile('\"data\"\:\s*(null)\,|\"data\"\:\s*(\"\s*\")\,')
         re_client_addr = re.compile('\"client_addr\"\:\s*\"([\d.]+)\"')
         re_hostname = re.compile('\"hostname\"\:\s*\"([\w._-]+)\"')
         re_connection_id = re.compile('\"connection_id\"\:\s*\"([\w.-]+)\"')
@@ -209,14 +210,19 @@ class ProcessEventLog(ProcessLog):
             for log_line in f:
                 line_dict = {}
                 # Remove square brackets from log line.
-                # log_line = log_line.translate("[", "[[")
+                # log_line = (log_line.replace("[[", "[")).replace("]]", "]")
                 #print "--- log_line: " + log_line
                 attack_success = re_attack_status.search(log_line).group(1) \
                     .strip()
-                try:
-                    data = re_data_1.search(log_line).group(1).strip()
-                except AttributeError:
-                    data = re_data_2.search(log_line).group(1).strip()
+                # If data attribute null or empty set ""
+                if (re_data_empty.search(log_line)):
+                    data = ""
+                else:
+                    data = re_data.search(log_line).group(1).strip()
+                # print "--- log_data: " + data
+                # except AttributeError:
+                #     data = re_data_2.search(log_line).group(1).strip()
+
                 client_addr = re_client_addr.search(log_line).group(1).strip()
                 # If hostname attribute doesn't exist assign an empty string.
                 try:
@@ -275,6 +281,7 @@ class ProcessEventLog(ProcessLog):
                                                  "version": application_version},
                                  "destination_ip": server_addr,
                                  "destination_port": str(server_port),
+                                 "server_addr": server_addr,
                                  "hostname": hostname,
                                  "domain": domain,
                                  "type": entry_type,
@@ -297,7 +304,7 @@ class ProcessEventLog(ProcessLog):
         else:
             #print "!!! path extract domain - " + path
             try:
-                domain_name = re.search('^([\w\.\?\-\=\&\@\%]+)\/', path) \
+                domain_name = re.search('^([\w\.\?\-\=\&\@\%\*\+\,\:\_\/\$]+)\/', path) \
                     .group(1).strip()
             except AttributeError:
                 domain_name = ""
