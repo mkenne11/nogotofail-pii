@@ -1,17 +1,22 @@
 # nogotofail-pii
 
-nogotofail-pii (aka noseyparker) is a fork of the nogotofail tool and it's primary aim is to test Android mobile applications for network based privacy issues.
+nogotofail-pii (aka noseyparker) is a fork of the nogotofail tool and it's primary aim is to test Android mobile applications for network based privacy issues. Privacy threats this project aims to highlight are:
+- Excessive collection of personally identifiable information (PII) by mobile applications
+- Inappropriate disclosure of PII by mobile applications to other service providers e.g. advertising & analytics services.
+- "Leakage" of PII on the network path in unencrypted traffic
 
-Features to be added are:
-- Detection of PII in unencrypted traffic, including accumulated PII across an application session
+Key features added are:
+- Detection of PII in encrypted and unencrypted traffic, including accumulated PII across an application session
 - Detection of TLS encryption not implementing forward secrecy
 - Reporting of PII issues by domain (JSON format)
 - Auto-collection of PII test data from Android device
 - Ability to define custom PII test data
-- Improved nogotofail application message and event reporting (JSON format)
-- Other miscellaneous privacy and security features
+- Summary nogotofail application message and event reporting (JSON format)
 
-Features that could be incorporated into the nogotofail project may be merged at some point.
+Other miscellaneous privacy and security features including:
+- Detection of certificates using SHA-1 signatures with expiry dates during or after the  [Chrome](http://blog.chromium.org/2014/09/gradually-sunsetting-sha-1.html) sunset period
+
+Where appropriate features that can be incorporated into the nogotofail project may be merged at some point.
 
 This project is sponsored by the Google Summer of Code 2015.
 
