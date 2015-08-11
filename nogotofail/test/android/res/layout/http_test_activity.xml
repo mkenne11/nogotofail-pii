@@ -21,29 +21,25 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical">
+
         <Button
             android:id="@+id/http_with_authorization"
             android:text="@string/test_http_with_authorization"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             />
-
         <Button
-            android:id="@+id/http_cleartext_pii_query_string"
-            android:text="@string/test_http_with_cleartext_pii_query_string"
+            android:id="@+id/test_http_pii"
+            android:text="@string/test_http_pii"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content" />
-
+            android:layout_height="wrap_content"
+            />
         <Button
-            android:id="@+id/http_cleartext_pii_header"
-            android:text="@string/test_http_with_cleartext_pii_header"
+            android:id="@+id/test_https_pii"
+            android:text="@string/test_https_pii"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content" />
+            android:layout_height="wrap_content"
+            />
 
-        <Button
-            android:id="@+id/http_cleartext_pii_message_body"
-            android:text="@string/test_http_with_cleartext_pii_message_body"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content" />
     </LinearLayout>
 </ScrollView>

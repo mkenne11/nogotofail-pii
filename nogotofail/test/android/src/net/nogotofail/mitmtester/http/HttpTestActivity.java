@@ -39,24 +39,15 @@ public class HttpTestActivity extends TestActivity {
       }
     });
 
-    findViewById(R.id.http_cleartext_pii_query_string).setOnClickListener(new View.OnClickListener() {
+    findViewById(R.id.test_http_pii).setOnClickListener(new View.OnClickListener() {
       @Override
-      public void onClick(View v) {
-        startTest(new CleartextHttpPiiQueryStringTest(app_context));
-      }
-    });
-    findViewById(R.id.http_cleartext_pii_header).setOnClickListener(new View.OnClickListener() {
-      @Override
-      public void onClick(View v) {
-        startTest(new CleartextHttpPiiHeaderTest(app_context));
-      }
-    });
-    findViewById(R.id.http_cleartext_pii_message_body).setOnClickListener(new View.OnClickListener() {
-      @Override
-      public void onClick(View v) {
-        startTest(new CleartextHttpPiiMessageBodyTest(app_context));
+      public void onClick(View v) { startTest(new HttpPiiTest(app_context));
       }
     });
 
+    findViewById(R.id.test_https_pii).setOnClickListener(new View.OnClickListener() {
+      @Override
+      public void onClick(View v) { startTest(new HttpsPiiTest(app_context)); }
+    });
   }
 }
