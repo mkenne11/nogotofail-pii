@@ -17,6 +17,9 @@
 package net.nogotofail.mitmtester;
 
 import android.content.Context;
+import android.location.Location;
+import com.google.android.gms.ads.identifier.AdvertisingIdClient;
+import net.nogotofail.mitmtester.util.ClientProperties;
 
 /**
  * Extension of BackgroundTest class with awareness of application context.
@@ -25,8 +28,15 @@ import android.content.Context;
  */
 public abstract class BackgroundTestForHttpPii extends BackgroundTest {
 
-    protected static final String TARGET = "http://android.com/";
+    protected static final String HTTP_TARGET = "http://android.com/";
+    protected static final String HTTPS_TARGET = "https://google.com/";
     protected static final int CONNECTION_TIMEOUT = 10000;
+
+    protected String android_id, google_ad_id;
+    protected AdvertisingIdClient.Info advertising_info;
+    protected Location client_location;
+    protected String location_longitude, location_latitude;
+    protected String email;
 
     private Context mContext;
 
@@ -38,5 +48,15 @@ public abstract class BackgroundTestForHttpPii extends BackgroundTest {
 
     protected Context getContext(){
         return this.mContext;
+    }
+
+    protected void FetchPIITestData() {
+        android_id = ClientProperties.getAndroidId(mContext);
+        advertising_info = ClientProperties.getAdvertisingId(mContext);
+        google_ad_id = advertising_info.getId();
+        client_location = ClientProperties.getDeviceLocation(mContext);
+        location_longitude = String.valueOf(client_location.getLongitude());
+        location_latitude = String.valueOf(client_location.getLatitude());
+        email = mContext.getString(R.string.pii_detail_email);
     }
 }

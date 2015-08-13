@@ -32,21 +32,19 @@
         HTTPS request without server authentication
     </string>
 
-    <string name="test_http_with_authorization">HTTP request with Authorization header</string>
-
-    <string name="test_http_with_cleartext_pii_query_string">
-        HTTP request with cleartext PII in QS
+    <string name="test_http_with_authorization">
+        HTTP request with Authorization header
     </string>
-    <string name="test_http_with_cleartext_pii_header">
-       HTTP request with cleartext PII in header
+    <string name="test_http_pii">
+        PII in HTTP in requests and responses
     </string>
-    <string name="test_http_with_cleartext_pii_message_body">
-        HTTP request with cleartext PII in message body
+    <string name="test_https_pii">
+        PII in HTTPS requests and responses
     </string>
 
     <!-- PII test items -->
     <string name="pii_detail_firstname">joe</string>
-    <string name="pii_detail_lastname">blog</string>
-    <string name="pii_detail_facebook_id">joe.blog@facebook.com</string>
-    <string name="pii_detail_email">joe.blog@gmail.com</string>
+    <string name="pii_detail_lastname">blogs</string>
+    <string name="pii_detail_facebook_id">joe.blogs@facebook.com</string>
+    <string name="pii_detail_email">joe.blogs@gmail.com</string>
 </resources>
