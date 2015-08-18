@@ -55,6 +55,7 @@ class HTTPPIIDetectionHandler(HttpDetectionMessageBodyHandler):
             # Search for PII in HTTP headers
             valid_header_text = ""
             # Remove headers which won't contain PII
+            # TODO: Check that headers isn't empty before proceeding.
             valid_headers = {k: v for k, v in headers.iteritems()
                              if k not in PIIDetectionUtilities.IGNORE_HEADERS}
             if (valid_headers):

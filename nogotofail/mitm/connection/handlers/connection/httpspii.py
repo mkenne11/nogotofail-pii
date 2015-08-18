@@ -137,24 +137,14 @@ class HTTPSPIIDetectionHandler(PIIDetectionHandler):
     name = "httpspii"
     description = (
         "Testing to see if encrypted PII is present in HTTPS content.")
+    # Location of trusted MitM certificate.
     MITM_CA = "./ca-chain-cleartext.key.cert.pem"
     ca = util.CertificateAuthority(MITM_CA)
     certificate = None
 
-    def on_http_request(self, http):
-        client = self.connection.app_blame.clients.get(self.connection
-                        .client_addr)
-        if (client):
-            headers = dict(http.headers)
-            host = headers.get("host", self.connection.server_addr)
-            content_type = headers.get("content-type", "")
-            debug_message = [
-                 "*httpspii > ",
-                 "on_http_request: host - ",
-                 host, ", path - ", http.path]
-            self.log(logging.DEBUG, "".join(debug_message))
-
     def on_https_request(self, http):
+        """ Parse HTTPS requests for PII paramters
+        """
         client = self.connection.app_blame.clients.get(self.connection
                         .client_addr)
         if (client):
@@ -196,6 +186,8 @@ class HTTPSPIIDetectionHandler(PIIDetectionHandler):
                 self._alert_on_pii_request_message_body(msg_content, combined_pii, url)
 
     def on_https_response(self, http):
+        """ Parse HTTPS responses for PII paramters
+        """
         client = self.connection.app_blame.clients.get(self.connection \
                     .client_addr)
         if (client):
@@ -216,6 +208,10 @@ class HTTPSPIIDetectionHandler(PIIDetectionHandler):
                                                      combined_pii, url)
 
     def on_certificate(self, server_cert):
+        """ Terminate on_certificate interaction between server and client &
+            insert a trusted certificate in traffic to server to initiate a
+            MitM attack
+        """
         subject = server_cert.get_subject()
         for k, v in subject.get_components():
             if k == "CN":
