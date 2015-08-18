@@ -18,7 +18,7 @@ if __name__ == "__main__":
                            "reports are pii_data_report & event_summary_report")
     parser.add_option("-o", "--output", dest="output_folder",
                       type="string",
-                      help="Folder of where reports are generated")
+                      help="Folder where reports are generated")
     parser.add_option("-l", "--log", dest="verbose_log",
                       type="string",
                       help="Path of verbose log to be read")
@@ -38,21 +38,14 @@ if __name__ == "__main__":
 
     application_log = ProcessApplicationLog(arg_verbose_log)
     # print "*** Application Dictionary:" + str(application_log.log_dict)
-    # print "\n\n"
     event_log = ProcessEventLog(arg_event_log)
 
     # print "*** Event Dictionary:" + str(event_log.log_dict)
-    # print "\n\n"
     # print "*** Application List:" + str(application_log.applications)
-    # print "\n\n"
     app_message_report = MessageReport(application_log, event_log)
     app_event_report = EventReport(application_log, event_log)
     app_event_summary_report = EventSummaryReport(application_log, event_log)
     app_pii_data_report = PIIDataReport(application_log, event_log)
-    # print "*** Application Messages: %s" % app_messages
-    # print "\n\n"
-    # print "*** Application Events : %s" % app_events
-    # print "\n\n"
 
     # Generates JSON report specified
     if arg_report == "event_summary_report":

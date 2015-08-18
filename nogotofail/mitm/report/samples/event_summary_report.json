@@ -5,7 +5,7 @@
     "events": [
       {
         "pii_items_found": [
-          "99.11",
+          "99.44",
           "2.33"
         ],
         "message": "PII: Location found in request query string (longitude, latitude) - [99.11, 2.33]",
