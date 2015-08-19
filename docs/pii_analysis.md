@@ -1,5 +1,12 @@
+# PII Analysis
 
-# Inspection of PII in Mobile Application Traffic
+nogotofail-pii can detect PII sent in traffic (both HTTP and HTTPS) between mobile applications and online services.
+
+This page is broken into two sections:
+- a description of how to use the [PII detection handlers](#pii_detection_handlers), and
+- summary [PII reporting](#pii_reporting).
+
+## 1. <a name="pii_detection_handlers"></a>PII Detection Handlers
 
 There are 2 handlers (attacks) available that inspect mobile application traffic for personally identifiable information (PII):
 - **httppii** - parses unencrypted (HTTP) traffic
@@ -9,7 +16,7 @@ The **httpspii** handler acts as a man-in-the-middle (MitM) TLS proxy, intercept
 
 For the **httpspii** handler to perform a man-in-the-middle attack a certificate is required that is trusted by the client. There are two options available - a. purchasing a TLS certificate from a trusted commercial CA; or b. generating your own CA and trusted certificate. Instructions for option b. can be found at [here](create_tls_proxy_cert.md).
 
-## 1. Specifying PII attacks
+### 1.a. Specifying PII Detection Handlers
 
 nogotofail-pii can be configured to run these attacks by including them in the configuration (`*.mitm`) file. A snippet of an example configuration file is shown below:
 ```
@@ -28,7 +35,7 @@ trafficfile=/var/log/nogotofail/mitm.traffic
 The **httppii** handler is a "data" handler and analyses the http data stream for PII information. The **httpspii** is an "attack" handler and manipulates the TLS connection.
 The **httpspii** handler tampers with the TLS connection and adds latency to each request, so it is recommended that you choose an attack "probability" value which minimises the chance of request timeouts.
 
-## 2. Specifiying PII items ##
+### 1.b. Configuring PII Items
 
 nogotofail-pii has two categories of PII that can be detected - pii-identifiers and pii-details.
 
@@ -61,9 +68,24 @@ There are reserved PII names used for personal information collected from the de
 | google_ad_id | The Google Advertising ID currently assigned to the device  |
 | ip_address | The devices IP address  |
 
-### 3. PII Reporting
+## 2. <a name="pii_reporting"></a>PII Reporting
 
-When either of the PII handlers is specified a PII summary report will be generated in the **/var/log/nogotofail/** folder (to be implemented). An example PII summary report is shown below.
+### 2.a. Generating PII Reports
+
+The PII data report summarizes PII issues alerted in the application verbose output and event logs. It can be run manually using the following command:
+```
+nogotofail/mitm/report/generate_report.py -r pii_data_report -o /etc/nogotofail/reports -l /var/log/nogotofail/mitm.log -e /var/log/nogotofail/mitm.event
+```
+```
+-r - Specifies the json report to generate. PII JSON report is pii_data_report
+-o - Folder where reports are generated
+-l - Path of verbose log to be read
+-e - Path of machine parseable event log to be read
+```
+
+### 2.b. PII Report Format
+
+An example PII summary report is shown below.
 ```
 // Android app identifier
 "com.ringtones.app": {

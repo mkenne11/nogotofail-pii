@@ -18,6 +18,8 @@ Other miscellaneous privacy and security features including:
 
 Detailed information on the features provided, configuring PII detection handlers and reporting can be found on the [PII analysis page](docs/pii_analysis.md).
 
+Application event summary reporting has also been added which provides a summarized view of alerts raised by mobile applications. Please read the [Event Summary Reporting](docs/event_summary_reporting.md) page for more information.
+
 Where appropriate pull requests may be raised in the (parent) nogotofail project for features relevant to the parent project.
 
 This project is sponsored by the Google Summer of Code 2015.
