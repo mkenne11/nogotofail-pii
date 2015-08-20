@@ -58,8 +58,11 @@ class PIIDetectionHandler(LoggingHandler):
 
     def on_response(self, response):
         http = util.http.parse_response(response)
-        headers = dict(http.getheaders())
-        host = headers.get("host", self.connection.server_addr)
+        try:
+            headers = dict(http.getheaders())
+            host = headers.get("host", self.connection.server_addr)
+        except AttributeError:
+            host = self.connection.server_addr
         if not self.connection.hostname:
             self.connection.hostname = host
         # Call the specific http response handler based on the use of TLS
