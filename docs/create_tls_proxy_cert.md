@@ -1,13 +1,14 @@
 # Creating a Certificate to performing MitM TLS Proxying
 
-nogotofail-pii can be configured to run as a man-in-the-middle (MitM) TLS. The method described here is using a self-signed certificate and requires two certificate chain files (PEM format) to be created:
+nogotofail-pii can be configured to operate as a man-in-the-middle (MitM) TLS proxy and inspect encrypted (HTTPS) traffic for PII. The method described here is using a self-signed certificate and requires two certificate chain files (PEM format) to be created:
 
-- **ca-chain-cleartext.key.cert.pem** certificate chain file containing the two certificate public key files (root and intermediate) and the intermediate certificate private key (private key unencrypted).
-- **ca-chain.cert.pem** certificate chain file containing the two certificate public key files (root and intermediate).
+- **ca-chain-cleartext.key.cert.pem** certificate chain file contains the two certificate public key files (root and intermediate) and the intermediate certificate private key (the private key is unencrypted).
+- **ca-chain.cert.pem** certificate chain file contains the two certificate public key files (for the root and intermediate certificates).
 
-The recommended procedure is described below and is based on the method used here: https://jamielinux.com/docs/openssl-certificate-authority/create-the-root-pair.html
+The recommended procedure below and is based on the method used here: https://jamielinux.com/docs/openssl-certificate-authority/create-the-root-pair.html
 
 ## 1. Setting up the Certificate Authority
+
 ###  a. Preparation
 
 Create a folder to store the Certificate Authority (CA) files.
@@ -26,7 +27,7 @@ An OpenSSL configuration file openssl.cnf needs to be created for the CA. The fo
 
 ### b. Creating the root key
 
-The root key is encrypted with AES 256-bit encryption and a strong password should be used.
+The root key is encrypted using AES 256-bit encryption and a strong password should be used.
 ```
 cd /root/ca
 openssl genrsa -aes256 -out private/ca.key.pem 4096
@@ -61,11 +62,11 @@ The root certificate should be verified using the instructions at: https://jamie
 
 ## 2. Create the TLS man-in-the-middle certificate key pair
 
-The new certificate will be created to perform the TLS man-in-the-middle (MitM) inspection between the mobile device and server. The certificate keys will be generated from the root CA.
+A new certificate will be created to perform the TLS man-in-the-middle (MitM) inspection between the mobile device and server. The certificate keys will be generated from the root CA.
 
 ### a. Preparation
 
-The new certificate files will be stored in a different directory. The suggested folder name is mitm and should be created under the CA folder:
+The new certificate files will be stored in a different directory. The suggested folder name is tlsmitm and should be created under the CA folder:
 
 ```mkdir /root/ca/tlsmitm```
 
@@ -81,7 +82,7 @@ Add a crlnumber file to the intermediate CA directory tree to keep track of cert
 
 ```echo 1000 > /root/ca/intermediate/crlnumber```
 
-Copy the intermediate CA configuration file to /root/ca/mitm/openssl.cnf. Change five options for this certificate:
+Copy the intermediate CA configuration file to /root/ca/mitm/openssl.cnf. The following five options need to be changed for this certificate:
 ```
 [ CA_default ]
 dir             = /root/ca/tlsmitm
@@ -93,7 +94,7 @@ policy          = policy_loose
 
 ### b. Create the certificate key
 
-Create the tls mitm key tls.pii.mitm.ca. Encrypt the intermediate key with AES 256-bit encryption and a strong password.
+Create the tls mitm key tls.pii.mitm.ca. The intermediate key is encrypted using AES 256-bit encryption and a strong password.
 ```
 cd /root/ca
 openssl genrsa -aes256 -out tlsmitm/private/tlsmitm.key.pem 4096
@@ -106,7 +107,7 @@ chmod 400 tlsmitm/private/tlsmitm.key.pem
 
 ### c. Create the TLS MitM certificate
 
-Use the TLS MitM key to create a certificate signing request (CSR). The details should generally match the root CA, except the Common Name which must be different.
+The TLS MitM key is used to create a certificate signing request (CSR). The details should generally match the root CA, except the Common Name which must be different.
 ```
 cd /root/ca
 openssl req -config tlsmitm/openssl.cnf -new -sha256 -key tlsmitm/private/tlsmitm.key.pem -out tlsmitm/csr/tlsmitm.csr.pem
@@ -161,7 +162,7 @@ chmod 444 tlsmitm/certs/ca-chain-cleartext.cert.pem
 
 ### c. Installing the TLS MitM certificates
 
-The 2 PEM files need to be deployed before TLS MitM functionality can be enabled.
+The two PEM files need to be installed before TLS MitM functionality can be enabled.
 
 The file containing the two public keys ca-chain.cert.pem needs to be installed in the Android device's certificate key store (under the Settings > Security > Trusted Credentials option).
 

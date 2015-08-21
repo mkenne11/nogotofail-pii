@@ -1,6 +1,6 @@
 # PII Analysis
 
-nogotofail-pii can detect PII sent in traffic (both HTTP and HTTPS) between mobile applications and online services.
+nogotofail-pii can detect PII sent in traffic (for both HTTP and HTTPS protocols) between mobile applications and online services.
 
 This page is broken into two sections:
 - a description of how to use the [PII detection handlers](#pii_detection_handlers), and
@@ -14,11 +14,11 @@ There are 2 handlers (attacks) available that inspect mobile application traffic
 
 The **httpspii** handler acts as a man-in-the-middle (MitM) TLS proxy, intercepting and terminating requests between the client and MitM daemon, and later handling encryption of traffic between the MitM daemon and online service.
 
-For the **httpspii** handler to perform a man-in-the-middle attack a certificate is required that is trusted by the client. There are two options available - a. purchasing a TLS certificate from a trusted commercial CA; or b. generating your own CA and trusted certificate. Instructions for option b. can be found at [here](create_tls_proxy_cert.md).
+For the **httpspii** handler to perform a man-in-the-middle attack a certificate is required that is trusted by the client. There are two options available - a. purchasing a TLS certificate from a trusted commercial CA; or b. generating your own CA and trusted certificate. Instructions for generating your own CA and trusted certificate (option b) can be found [here](create_tls_proxy_cert.md).
 
 ### 1.a. Specifying PII Detection Handlers
 
-nogotofail-pii can be configured to run these attacks by including them in the configuration (`*.mitm`) file. A snippet of an example configuration file is shown below:
+nogotofail-pii can be configured to use the PII detection handlers by adding the handler arguments in the configuration (`*.mitm`) file. A snippet of an example configuration file is shown below:
 ```
 [nogotofail.mitm]
 attacks=httpspii
@@ -33,7 +33,7 @@ eventlogfile=/var/log/nogotofail/mitm.event
 trafficfile=/var/log/nogotofail/mitm.traffic
 ```
 The **httppii** handler is a "data" handler and analyses the http data stream for PII information. The **httpspii** is an "attack" handler and manipulates the TLS connection.
-The **httpspii** handler tampers with the TLS connection and adds latency to each request, so it is recommended that you choose an attack "probability" value which minimises the chance of request timeouts.
+Note. Tampering of the TLS connection by the **httpspii** handler adds latency to requests, so it is recommended that you choose an attack "probability" value which minimizes the chance of request timeouts. Trial and error is required to find the correct probability for your setup.
 
 ### 1.b. Configuring PII Items
 
@@ -41,7 +41,7 @@ nogotofail-pii has two categories of PII that can be detected - pii-identifiers 
 
 pii-identifiers are identifiers that uniquely identify a device or user. Suggested examples are phone number, Facebook user ID, email. These identifiers can be defined in the '[nogotofail.identifiers.pii]' section of the configuration file.
 
-pii-details describe data about the individual that may by themselves may not identify them, but could identify them if combined with other data. Suggested examples are first name, last name, postal address. These identifiers can be defined in the '[nogotofail.details.pii]' section of the configuration file.
+pii-details describe data about the individual that may by themselves do not uniquely identify them, but could identify the individual if combined with other data. Suggested examples are first name, last name, postal address. These identifiers can be defined in the '[nogotofail.details.pii]' section of the configuration file.
 
 An example configuration file is shown below.
 ```
@@ -56,9 +56,9 @@ last_name = blogs
 postal_address = "1 Long Road, Towns-ville"
 ```
 
-Custom PII items can be specified in the configuration (`*.mitm`) file to detect.
+Custom PII items to check can be specified in the configuration (`*.mitm`) file.
 
-There are reserved PII names used for personal information collected from the device by the Android client, and cannot be used for custom PII values. Reserved PII names are listed below.
+There are reserved PII names used for personal information collected from the device by the Android client, which cannot be used for custom PII values. The reserved PII names are listed below.
 
 | Reserved PII | Description |
 |--------------|---|
