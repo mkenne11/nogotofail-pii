@@ -32,5 +32,3 @@ VULN_TLS_SERVER_KEY_REPLACEMENT = "serverkeyreplace"
 VULN_TLS_SUPERFISH_TRUSTED = "superfishca"
 
 VULN_CLEARTEXT_HTTP_PII = "httppii"
-VULN_NO_FORWARD_SECRECY = "noforwardsecrecy"
-VULN_SUNSET_SHA1 = "sunsetsha1"
