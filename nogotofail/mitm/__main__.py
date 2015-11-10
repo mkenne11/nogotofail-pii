@@ -33,8 +33,9 @@ import copy
 from nogotofail.mitm.blame import Server as AppBlameServer
 from nogotofail.mitm.connection import Server, RedirectConnection, SocksConnection, TproxyConnection
 from nogotofail.mitm.connection import handlers
+from nogotofail.mitm.connection.handlers import preconditions
 from nogotofail.mitm.looper import MitmLoop
-from nogotofail.mitm.util import routing
+from nogotofail.mitm.util import routing, extras
 
 LOG_FORMAT = logging.Formatter("%(asctime)-15s [%(levelname)s] %(message)s")
 EVENT_FORMAT = logging.Formatter("%(message)s")
@@ -293,15 +294,6 @@ def parse_args():
         help=("Route IPv6 traffic. "
         "Requires support for ip6tables NAT redirect when in redirect mode (iptables > 1.4.17)"),
         default=False, action="store_true")
-    parser.add_argument(
-        "--serverssl", help="Run the app blame server with SSL using PEMFILE",
-        metavar="PEMFILE", action="store")
-    parser.add_argument(
-        "--block", help="Block connections with unknown blame info",
-        action="store_true", default=False)
-    parser.add_argument(
-        "--mode", help="Traffic capture mode. Options are " + ", ".join(modes.keys()),
-        choices=modes, metavar="MODE", action="store", default=default_mode)
 
     parser.add_argument(
         "--fns1", help="***** Nogotofail functions *****************************",
@@ -317,7 +309,18 @@ def parse_args():
         help="Data attacks to run. Supported attacks are " +
         ", ".join(all_data), choices=handlers.data.handlers.map, nargs="+",
         metavar="ATTACK", action="store", default=default_data)
-
+    parser.add_argument(
+        "--serverssl", help="Run the app blame server with SSL using PEMFILE",
+        metavar="PEMFILE", action="store")
+    parser.add_argument(
+        "--block", help="Block connections with unknown blame info",
+        action="store_true", default=False)
+    parser.add_argument(
+        "--mode", help="Traffic capture mode. Options are " + ", ".join(modes.keys()),
+        choices=modes, metavar="MODE", action="store", default=default_mode)
+    parser.add_argument(
+        "-x", "--extrasdir", help="Directory containing extra files required by handlers",
+        default = "./")
     parser.set_defaults(**config)
     return parser.parse_args(argv)
 
@@ -372,11 +375,14 @@ def setup_logging(args):
 def run():
     args = parse_args()
     setup_logging(args)
+    extras.extras_dir = args.extrasdir
 
     selector = build_selector(args.all)
     attack_cls = [handlers.connection.handlers.map[name]
                   for name in args.attacks]
+    attack_cls = preconditions.filter_preconditions(attack_cls, logger)
     data_cls = [handlers.data.handlers.map[name] for name in args.data]
+    data_cls = preconditions.filter_preconditions(data_cls, logger)
     ssl_selector = build_ssl_selector(attack_cls, args.probability, args.all)
     data_selector = build_data_selector(data_cls, args.all,
                                         prob_attack=args.probability)

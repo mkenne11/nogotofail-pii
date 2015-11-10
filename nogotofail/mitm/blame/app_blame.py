@@ -24,6 +24,7 @@ import urllib
 import ast
 
 from nogotofail.mitm.connection import handlers
+from nogotofail.mitm.connection.handlers import preconditions
 from nogotofail.mitm.util import close_quietly, truncate
 
 Application = namedtuple("Application", ["package", "version"])
@@ -261,17 +262,18 @@ class Client(object):
         if "Attacks" in headers:
             attacks = headers["Attacks"].split(",")
             attacks = map(str.strip, attacks)
-            client_info["Attacks"] = [
+            client_info["Attacks"] = preconditions.filter_preconditions([
                     handlers.connection.handlers.map[attack] for attack in attacks
-                    if attack in handlers.connection.handlers.map]
+                    if attack in handlers.connection.handlers.map])
 
         if "Data-Attacks" in headers:
             attacks = headers["Data-Attacks"].split(",")
             attacks = map(str.strip, attacks)
-            client_info["Data-Attacks"] = [handlers.data.handlers.map[attack]
+            client_info["Data-Attacks"] = preconditions.filter_preconditions(
+                    [handlers.data.handlers.map[attack]
                     for attack in attacks
                     if attack in
-                    handlers.data.handlers.map]
+                    handlers.data.handlers.map])
 
         if ("PII-Identifiers" in headers):
             # Define Personal IDs container
