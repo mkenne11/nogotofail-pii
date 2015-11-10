@@ -97,10 +97,6 @@
 
     <!-- Vulnerability: PII detected in HTTP content -->
     <string name="vuln_httppii">Cleartext PII detected in HTTP content</string>
-    <!-- Vulnerability: Cipher key exchange doesn't support forward secrecy -->
-    <string name="vuln_noforwardsecrecy">Cipher key exchange doesn\'t support forward secrecy</string>
-    <!-- Vulnerability: Certificate uses SHA-1 and expires after a Chrome sunset date -->
-    <string name="vuln_sunsetsha1">Certificate uses SHA-1 and expires after a Chrome sunset date</string>
 
     <string name="notifications_pref_screen_title">Notifications</string>
     <string name="vuln_notifications_enabled_pref_title">Notifications</string>
@@ -169,11 +165,6 @@
 
     <string name="attack_title_httppii">Cleartext PII in HTTP content</string>
     <string name="attack_summary_httppii">Cleartext PII appears in HTTP content</string>
-    <string name="attack_title_noforwardsecrecy">Cipher key exchange doesn\'t support forward secrecy</string>
-    <string name="attack_summary_noforwardsecrecy">Cipher suite key exchange technique doesn\'t support forward secrecy.</string>
-    <string name="attack_title_sunsetsha1">Certificate uses SHA-1 and expires after sunset date</string>
-    <string name="attack_summary_sunsetsha1">Certificate uses SHA-1 and expires after a Chrome sunset date</string>
-
 
     <string name="advanced_pref_screen_title">Advanced</string>
 
