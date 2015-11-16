@@ -22,4 +22,5 @@ import vuln
 import http
 from miscellaneous import *
 from pii import *
+from httppii import *
 import extras

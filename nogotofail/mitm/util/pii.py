@@ -15,18 +15,19 @@ limitations under the License.
 '''
 
 
-class PIIDetectionUtilities(object):
+class PiiDetectionUtils(object):
     """General functions that can be used to search for PII items in
        HTTP strings e.g. headers, query strings, bodies.
     """
-    """ HTTP headers to ignore not containing PII """
+    
+    # HTTP headers to ignore not containing PII
     IGNORE_HEADERS = ["host", "connection", "content-length", "accept",
                       "user-agent", "content-type", "accept-encoding",
                       "accept-language", "accept-charset"]
-    """ HTTP request and response valid "content-type" header values """
+    # HTTP request and response valid "content-type" header values
     VALID_CONTENT_TYPES = ["text/html", "application/json",
                            "text/plain", "text/xml", "application/xml"]
-    """ PII log entry caveats """
+    # PII log entry caveats
     CAVEAT_PII_QRY_STRING = "PII-QueryString"
     CAVEAT_PII_HEADER = "PII-Header"
     CAVEAT_PII_MSG_BODY = "PII-Message-Body"
