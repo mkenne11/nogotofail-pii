@@ -21,9 +21,7 @@ from nogotofail.mitm.connection.handlers.data import ClientReportDetection
 from nogotofail.mitm.connection.handlers.data import DataHandler
 from nogotofail.mitm.connection.handlers.store import handler
 from nogotofail.mitm.event import connection
-import httplib
 import re
-import zlib
 
 
 # By making this an internal handler, it will be enabled by default and run

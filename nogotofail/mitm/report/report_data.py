@@ -19,7 +19,7 @@ limitations under the License.
 """
 
 # from nogotofail.mitm import util
-# from nogotofail.mitm.util import PiiDetectionUtils
+# from nogotofail.mitm.util import PiiDetection
 import abc
 import json
 import re

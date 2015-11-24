@@ -15,11 +15,11 @@ limitations under the License.
 '''
 
 
-class PiiDetectionUtils(object):
+class PiiDetection(object):
     """General functions that can be used to search for PII items in
        HTTP strings e.g. headers, query strings, bodies.
     """
-    
+
     # HTTP headers to ignore not containing PII
     IGNORE_HEADERS = ["host", "connection", "content-length", "accept",
                       "user-agent", "content-type", "accept-encoding",

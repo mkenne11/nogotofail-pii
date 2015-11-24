@@ -18,7 +18,7 @@ from nogotofail.mitm.connection.handlers.data import handlers
 from nogotofail.mitm.connection.handlers.data import HttpContentHandler
 from nogotofail.mitm.connection.handlers.store import handler
 from nogotofail.mitm.event import connection
-from nogotofail.mitm.util import PiiDetectionUtils as PiiUtils
+from nogotofail.mitm.util import PiiDetection as piidu
 import logging
 
 
@@ -76,7 +76,7 @@ class HTTPPIIDetectionHandler(HttpPiiContentHandler):
 
             # Search for PII in HTTP query string
             if (query_string):
-                self._alert_on_PII_query_string(query_string, combined_pii, url)
+                self._alert_on_pii_query_string(query_string, combined_pii, url)
             # Search for PII in HTTP headers
             valid_header_text = ""
             # Remove headers which won't contain PII
@@ -104,9 +104,7 @@ class HTTPPIIDetectionHandler(HttpPiiContentHandler):
             self._alert_on_pii_response_message_body(msg_content,
                     combined_pii, url)
 
-    """ Private methods checking for PII with HTTP content
-    """
-    def _alert_on_PII_query_string(self, query_string, combined_pii, url):
+    def _alert_on_pii_query_string(self, query_string, combined_pii, url):
         """ Test and alert on instances of PII found in query string
         """
         pii_identifiers_found = []
@@ -115,18 +113,18 @@ class HTTPPIIDetectionHandler(HttpPiiContentHandler):
         error_message = ""
         # Check if PII found in query string
         if (combined_pii["identifiers"]):
-            pii_identifiers_found = PiiUtils.detect_pii_ids(query_string,
+            pii_identifiers_found = piidu.detect_pii_ids(query_string,
                                         combined_pii["identifiers"])
         if (combined_pii["location"]):
-            pii_location_found = PiiUtils.detect_pii_location(query_string,
+            pii_location_found = piidu.detect_pii_location(query_string,
                                         combined_pii["location"])
         if (combined_pii["details"]):
-            pii_details_found = PiiUtils.detect_pii_details(query_string,
+            pii_details_found = piidu.detect_pii_details(query_string,
                                         combined_pii["details"])
         # If PII is found in query string raise INFO message in
         # message and event logs
         if (pii_identifiers_found):
-            error_message = [PiiUtils.CAVEAT_PII_QRY_STRING,
+            error_message = [piidu.CAVEAT_PII_QRY_STRING,
                   ": Personal IDs found in request query string ",
                   str(pii_identifiers_found)]
             self.log(logging.ERROR, "".join(error_message))
@@ -134,7 +132,7 @@ class HTTPPIIDetectionHandler(HttpPiiContentHandler):
                            self.connection, self.name, True, url))
             self.connection.vuln_notify(util.vuln.VULN_CLEARTEXT_HTTP_PII)
         if (pii_location_found):
-            error_message = [PiiUtils.CAVEAT_PII_QRY_STRING,
+            error_message = [piidu.CAVEAT_PII_QRY_STRING,
                   ": Location found in request query string ",
                   "(longitude, latitude) - ", str(pii_location_found)]
             self.log(logging.ERROR, "".join(error_message))
@@ -142,7 +140,7 @@ class HTTPPIIDetectionHandler(HttpPiiContentHandler):
                            self.connection, self.name, True, url))
             self.connection.vuln_notify(util.vuln.VULN_CLEARTEXT_HTTP_PII)
         if (pii_details_found):
-            error_message = [PiiUtils.CAVEAT_PII_QRY_STRING,
+            error_message = [piidu.CAVEAT_PII_QRY_STRING,
                   ": Personal details found in request ",
                   "query string - ", str(pii_details_found)]
             self.log(logging.ERROR, "".join(error_message))
@@ -158,18 +156,18 @@ class HTTPPIIDetectionHandler(HttpPiiContentHandler):
         pii_details_found = []
         # Check if PII found in query string
         if (combined_pii["identifiers"]):
-            pii_identifiers_found = PiiUtils.detect_pii_ids(header_text,
+            pii_identifiers_found = piidu.detect_pii_ids(header_text,
                                         combined_pii["identifiers"])
         if (combined_pii["location"]):
-            pii_location_found = PiiUtils.detect_pii_location(header_text,
+            pii_location_found = piidu.detect_pii_location(header_text,
                                         combined_pii["location"])
         if (combined_pii["details"]):
-            pii_details_found = PiiUtils.detect_pii_details(header_text,
+            pii_details_found = piidu.detect_pii_details(header_text,
                                         combined_pii["details"])
         # If PII is found in headers raise INFO message in
         # message and event logs
         if (pii_identifiers_found):
-            error_message = [PiiUtils.CAVEAT_PII_HEADER,
+            error_message = [piidu.CAVEAT_PII_HEADER,
                   ": Personal IDs found in request headers ",
                   str(pii_identifiers_found)]
             self.log(logging.ERROR, "".join(error_message))
@@ -177,7 +175,7 @@ class HTTPPIIDetectionHandler(HttpPiiContentHandler):
                            self.connection, self.name, True, url))
             self.connection.vuln_notify(util.vuln.VULN_CLEARTEXT_HTTP_PII)
         if (pii_location_found):
-            error_message = [PiiUtils.CAVEAT_PII_HEADER,
+            error_message = [piidu.CAVEAT_PII_HEADER,
                  ": Location found in request headers ",
                  "(longitude, latitude) - ", str(pii_location_found)]
             self.log(logging.ERROR, "".join(error_message))
@@ -185,7 +183,7 @@ class HTTPPIIDetectionHandler(HttpPiiContentHandler):
                            self.connection, self.name, True, url))
             self.connection.vuln_notify(util.vuln.VULN_CLEARTEXT_HTTP_PII)
         if (pii_details_found):
-            error_message = [PiiUtils.CAVEAT_PII_HEADER,
+            error_message = [piidu.CAVEAT_PII_HEADER,
                   ": Personal details found in request headers - ",
                   str(pii_details_found)]
             self.log(logging.ERROR, "".join(error_message))
@@ -201,18 +199,18 @@ class HTTPPIIDetectionHandler(HttpPiiContentHandler):
         pii_details_found = []
         # Check if PII found in message body
         if (combined_pii["identifiers"]):
-            pii_identifiers_found = PiiUtils.detect_pii_ids(msg_content,
+            pii_identifiers_found = piidu.detect_pii_ids(msg_content,
                                         combined_pii["identifiers"])
         if (combined_pii["location"]):
-            pii_location_found = PiiUtils.detect_pii_location(msg_content,
+            pii_location_found = piidu.detect_pii_location(msg_content,
                                         combined_pii["location"])
         if (combined_pii["details"]):
-            pii_details_found = PiiUtils.detect_pii_details(msg_content,
+            pii_details_found = piidu.detect_pii_details(msg_content,
                                         combined_pii["details"])
         # If PII is found in message body raise INFO message in
         # message and event logs
         if (pii_identifiers_found):
-            error_message = [PiiUtils.CAVEAT_PII_MSG_BODY,
+            error_message = [piidu.CAVEAT_PII_MSG_BODY,
                   ": Personal IDs found in request message body ",
                   str(pii_identifiers_found)]
             self.log(logging.ERROR, "".join(error_message))
@@ -220,7 +218,7 @@ class HTTPPIIDetectionHandler(HttpPiiContentHandler):
                            self.connection, self.name, True, url))
             self.connection.vuln_notify(util.vuln.VULN_CLEARTEXT_HTTP_PII)
         if (pii_location_found):
-            error_message = [PiiUtils.CAVEAT_PII_MSG_BODY,
+            error_message = [piidu.CAVEAT_PII_MSG_BODY,
                   ": Location found in request message body ",
                   "(longitude, latitude) - ", str(pii_location_found)]
             self.log(logging.ERROR, "".join(error_message))
@@ -228,7 +226,7 @@ class HTTPPIIDetectionHandler(HttpPiiContentHandler):
                            self.connection, self.name, True, url))
             self.connection.vuln_notify(util.vuln.VULN_CLEARTEXT_HTTP_PII)
         if (pii_details_found):
-            error_message = [PiiUtils.CAVEAT_PII_MSG_BODY,
+            error_message = [piidu.CAVEAT_PII_MSG_BODY,
                   ": Personal details found in request message body - ",
                   str(pii_details_found)]
             self.log(logging.ERROR, "".join(error_message))
@@ -244,18 +242,18 @@ class HTTPPIIDetectionHandler(HttpPiiContentHandler):
         pii_details_found = []
         # Check if PII found in message body
         if (combined_pii["identifiers"]):
-            pii_identifiers_found = PiiUtils.detect_pii_ids(msg_content,
+            pii_identifiers_found = piidu.detect_pii_ids(msg_content,
                                         combined_pii["identifiers"])
         if (combined_pii["location"]):
-            pii_location_found = PiiUtils.detect_pii_location(msg_content,
+            pii_location_found = piidu.detect_pii_location(msg_content,
                                         combined_pii["location"])
         if (combined_pii["details"]):
-            pii_details_found = PiiUtils.detect_pii_details(msg_content,
+            pii_details_found = piidu.detect_pii_details(msg_content,
                                         combined_pii["details"])
         # If PII is found in message body raise INFO message in
         # message and event logs
         if (pii_identifiers_found):
-            error_message = [PiiUtils.CAVEAT_PII_MSG_BODY,
+            error_message = [piidu.CAVEAT_PII_MSG_BODY,
                   ": Personal IDs found in response message body ",
                   str(pii_identifiers_found)]
             self.log(logging.ERROR, "".join(error_message))
@@ -263,7 +261,7 @@ class HTTPPIIDetectionHandler(HttpPiiContentHandler):
                            self.connection, self.name, True, url))
             self.connection.vuln_notify(util.vuln.VULN_CLEARTEXT_HTTP_PII)
         if (pii_location_found):
-            error_message = [PiiUtils.CAVEAT_PII_MSG_BODY,
+            error_message = [piidu.CAVEAT_PII_MSG_BODY,
                   ": Location found in response message body ",
                   "(longitude, latitude) - ", str(pii_location_found)]
             self.log(logging.ERROR, "".join(error_message))
@@ -271,7 +269,7 @@ class HTTPPIIDetectionHandler(HttpPiiContentHandler):
                            self.connection, self.name, True, url))
             self.connection.vuln_notify(util.vuln.VULN_CLEARTEXT_HTTP_PII)
         if (pii_details_found):
-            error_message = [PiiUtils.CAVEAT_PII_MSG_BODY,
+            error_message = [piidu.CAVEAT_PII_MSG_BODY,
                   ": Personal details found in response message body - ",
                   str(pii_details_found)]
             self.log(logging.ERROR, "".join(error_message))
