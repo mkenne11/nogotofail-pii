@@ -146,7 +146,6 @@ class HTTPSPIIDetectionHandler(HttpPiiContentHandler):
         """
         pii_identifiers_found = []
         pii_location_found = []
-        pii_details_found = []
         # Check if PII found in query string
         if (combined_pii["identifiers"]):
             pii_identifiers_found = \
@@ -154,32 +153,19 @@ class HTTPSPIIDetectionHandler(HttpPiiContentHandler):
         if (combined_pii["location"]):
             pii_location_found = \
                 piidu.detect_pii_location(query_string, combined_pii["location"])
-        if (combined_pii["details"]):
-            pii_details_found = \
-                piidu.detect_pii_details(query_string, combined_pii["details"])
         # If PII is found in query string raise INFO message in
         # message and event logs
         if (pii_identifiers_found):
-            error_message = \
-                 [piidu.CAVEAT_PII_QRY_STRING,
+            error_message = [piidu.CAVEAT_PII_QRY_STRING,
                   ": Personal IDs found in request query string ",
                   str(pii_identifiers_found)]
             self.log(logging.INFO, "".join(error_message))
             self.log_event(logging.INFO, connection.AttackEvent(
                            self.connection, self.name, True, url))
         if (pii_location_found):
-            error_message = \
-                 [piidu.CAVEAT_PII_QRY_STRING,
+            error_message = [piidu.CAVEAT_PII_QRY_STRING,
                   ": Location found in request query string ",
                   "(longitude, latitude) - ", str(pii_location_found)]
-            self.log(logging.INFO, "".join(error_message))
-            self.log_event(logging.INFO, connection.AttackEvent(
-                           self.connection, self.name, True, url))
-        if (pii_details_found):
-            error_message = \
-                 [piidu.CAVEAT_PII_QRY_STRING,
-                  ": Personal details found in request ",
-                  "query string - ", str(pii_details_found)]
             self.log(logging.INFO, "".join(error_message))
             self.log_event(logging.INFO, connection.AttackEvent(
                            self.connection, self.name, True, url))
@@ -189,7 +175,6 @@ class HTTPSPIIDetectionHandler(HttpPiiContentHandler):
         """
         pii_identifiers_found = []
         pii_location_found = []
-        pii_details_found = []
         # Check if PII found in query string
         if (combined_pii["identifiers"]):
             pii_identifiers_found = \
@@ -197,32 +182,17 @@ class HTTPSPIIDetectionHandler(HttpPiiContentHandler):
         if (combined_pii["location"]):
             pii_location_found = \
                 piidu.detect_pii_location(header_text, combined_pii["location"])
-        if (combined_pii["details"]):
-            pii_details_found = \
-                piidu.detect_pii_details(header_text, combined_pii["details"])
-        # If PII is found in headers raise INFO message in
-        # message and event logs
         if (pii_identifiers_found):
-            error_message = \
-                 [piidu.CAVEAT_PII_HEADER,
+            error_message = [piidu.CAVEAT_PII_HEADER,
                   ": Personal IDs found in request headers ",
                   str(pii_identifiers_found)]
             self.log(logging.INFO, "".join(error_message))
             self.log_event(logging.INFO, connection.AttackEvent(
                            self.connection, self.name, True, url))
         if (pii_location_found):
-            error_message = \
-                [piidu.CAVEAT_PII_HEADER,
+            error_message = [piidu.CAVEAT_PII_HEADER,
                  ": Location found in request headers ",
                  "(longitude, latitude) - ", str(pii_location_found)]
-            self.log(logging.INFO, "".join(error_message))
-            self.log_event(logging.INFO, connection.AttackEvent(
-                           self.connection, self.name, True, url))
-        if (pii_details_found):
-            error_message = \
-                 [piidu.CAVEAT_PII_HEADER,
-                  ": Personal details found in request headers - ",
-                  str(pii_details_found)]
             self.log(logging.INFO, "".join(error_message))
             self.log_event(logging.INFO, connection.AttackEvent(
                            self.connection, self.name, True, url))
@@ -232,43 +202,26 @@ class HTTPSPIIDetectionHandler(HttpPiiContentHandler):
         """
         pii_identifiers_found = []
         pii_location_found = []
-        pii_details_found = []
         # Check if PII found in message body
         if (combined_pii["identifiers"]):
-            pii_identifiers_found = \
-                piidu.detect_pii_ids(msg_content,
+            pii_identifiers_found = piidu.detect_pii_ids(msg_content,
                                         combined_pii["identifiers"])
         if (combined_pii["location"]):
-            pii_location_found = \
-                piidu.detect_pii_location(msg_content,
+            pii_location_found = piidu.detect_pii_location(msg_content,
                                         combined_pii["location"])
-        if (combined_pii["details"]):
-            pii_details_found = \
-                piidu.detect_pii_details(msg_content,
-                                        combined_pii["details"])
         # If PII is found in message body raise INFO message in
         # message and event logs
         if (pii_identifiers_found):
-            error_message = \
-                 [piidu.CAVEAT_PII_MSG_BODY,
+            error_message = [piidu.CAVEAT_PII_MSG_BODY,
                   ": Personal IDs found in request message body ",
                   str(pii_identifiers_found)]
             self.log(logging.INFO, "".join(error_message))
             self.log_event(logging.INFO, connection.AttackEvent(
                            self.connection, self.name, True, url))
         if (pii_location_found):
-            error_message = \
-                 [piidu.CAVEAT_PII_MSG_BODY,
+            error_message = [piidu.CAVEAT_PII_MSG_BODY,
                   ": Location found in request message body ",
                   "(longitude, latitude) - ", str(pii_location_found)]
-            self.log(logging.INFO, "".join(error_message))
-            self.log_event(logging.INFO, connection.AttackEvent(
-                           self.connection, self.name, True, url))
-        if (pii_details_found):
-            error_message = \
-                 [piidu.CAVEAT_PII_MSG_BODY,
-                  ": Personal details found in request message body - ",
-                  str(pii_details_found)]
             self.log(logging.INFO, "".join(error_message))
             self.log_event(logging.INFO, connection.AttackEvent(
                            self.connection, self.name, True, url))
@@ -278,43 +231,24 @@ class HTTPSPIIDetectionHandler(HttpPiiContentHandler):
         """
         pii_identifiers_found = []
         pii_location_found = []
-        pii_details_found = []
         # Check if PII found in query string
         if (combined_pii["identifiers"]):
-            pii_identifiers_found = \
-                piidu.detect_pii_ids(msg_content,
+            pii_identifiers_found = piidu.detect_pii_ids(msg_content,
                                         combined_pii["identifiers"])
         if (combined_pii["location"]):
-            pii_location_found = \
-                piidu.detect_pii_location(msg_content,
+            pii_location_found = piidu.detect_pii_location(msg_content,
                                         combined_pii["location"])
-        if (combined_pii["details"]):
-            pii_details_found = \
-                piidu.detect_pii_details(msg_content,
-                                        combined_pii["details"])
-        # If PII is found in headers raise INFO message in
-        # message and event logs
         if (pii_identifiers_found):
-            error_message = \
-                 [piidu.CAVEAT_PII_MSG_BODY,
+            error_message = [piidu.CAVEAT_PII_MSG_BODY,
                   ": Personal IDs found in response message body ",
                   str(pii_identifiers_found)]
             self.log(logging.INFO, "".join(error_message))
             self.log_event(logging.INFO, connection.AttackEvent(
                            self.connection, self.name, True, url))
         if (pii_location_found):
-            error_message = \
-                 [piidu.CAVEAT_PII_MSG_BODY,
+            error_message = [piidu.CAVEAT_PII_MSG_BODY,
                   ": Location found in response message body ",
                   "(longitude, latitude) - ", str(pii_location_found)]
-            self.log(logging.INFO, "".join(error_message))
-            self.log_event(logging.INFO, connection.AttackEvent(
-                           self.connection, self.name, True, url))
-        if (pii_details_found):
-            error_message = \
-                 [piidu.CAVEAT_PII_MSG_BODY,
-                  ": Personal details found in response message body - ",
-                  str(pii_details_found)]
             self.log(logging.INFO, "".join(error_message))
             self.log_event(logging.INFO, connection.AttackEvent(
                            self.connection, self.name, True, url))

@@ -287,8 +287,8 @@ class Client(object):
             # TODO: Think if HTML encoding is needed for PII information.
             # e.g. ',",&,<,> characters.
 
-        client_info["PII-Details"] = {}
-        client_info["PII-Details"]["plain-text"] = {}
+        # client_info["PII-Details"] = {}
+        # client_info["PII-Details"]["plain-text"] = {}
 
         """
         if ("PII-Details" in headers):
@@ -402,45 +402,45 @@ class Client(object):
                 self.info["PII-Location"]["latitude"]
 
             ### Build combined PII detail collections.
-            config_pii_details = self.server.pii["details"]
-            combined_pii["details"] = {}
+            # config_pii_details = self.server.pii["details"]
+            # combined_pii["details"] = {}
 
-            combined_pii["details"]["plain-text"] = \
-                self.info["PII-Details"]["plain-text"]
-            combined_pii["details"]["base64"] = {}
-            combined_pii["details"]["url-encoded"] = {}
+            # combined_pii["details"]["plain-text"] = \
+            #    self.info["PII-Details"]["plain-text"]
+            # combined_pii["details"]["base64"] = {}
+            # combined_pii["details"]["url-encoded"] = {}
 
             # Add each of the server (config) PII detail item to the combine
             # PII collection. Overwrite value with server config version if
             # any conflict.
-            for id_key, id_value in config_pii_details.iteritems():
-                combined_pii["details"]["plain-text"][id_key] = id_value
+            # for id_key, id_value in config_pii_details.iteritems():
+            #    combined_pii["details"]["plain-text"][id_key] = id_value
 
-            personal_details = combined_pii["details"]["plain-text"]
-            personal_details_base64 = {}
-            personal_details_urlencoded = {}
-            #device_location = \
+            # personal_details = combined_pii["details"]["plain-text"]
+            # personal_details_base64 = {}
+            # personal_details_urlencoded = {}
+            # device_location = \
             #    client_info["PII-Details"]["plain-text"]["device_location"]
 
-            #self.logger.debug(" *** Method combine_pii_items(): " +
+            # self.logger.debug(" *** Method combine_pii_items(): " +
             #    "personal_details.iteritems - %s" % str(personal_details))
             # Create base64 dictionary of PII details
-            for id_key, id_value in personal_details.iteritems():
+            # for id_key, id_value in personal_details.iteritems():
                 # Add a base64 version of ID to dictionary
-                personal_details_base64[id_key + " (base64)"] = \
-                    base64.b64encode(id_value)
-            combined_pii["details"]["base64"] = personal_details_base64
+            #    personal_details_base64[id_key + " (base64)"] = \
+            #        base64.b64encode(id_value)
+            # combined_pii["details"]["base64"] = personal_details_base64
 
             # Create url encoded dictionary of PII details
-            for id_key, id_value in personal_details.iteritems():
+            # for id_key, id_value in personal_details.iteritems():
                 # Add a url encoded version of ID to dictionary if its different
                 # from the plain text version & if the item it isn't a
                 # sub-dictionary.
-                id_value_urln = urllib.quote_plus(id_value)
-                if (id_value != id_value_urln):
-                    personal_details_urlencoded[id_key +
-                        " (url encoded)"] = id_value_urln
-            combined_pii["details"]["url-encoded"] = personal_details_urlencoded
+            #    id_value_urln = urllib.quote_plus(id_value)
+            #    if (id_value != id_value_urln):
+            #        personal_details_urlencoded[id_key +
+            #            " (url encoded)"] = id_value_urln
+            # combined_pii["details"]["url-encoded"] = personal_details_urlencoded
 
             # TODO: Think if HTML encoding is needed for PII information.
             # e.g. ',",&,<,> characters.

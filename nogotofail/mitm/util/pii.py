@@ -66,12 +66,12 @@ class PiiDetection(object):
             pii_location_found.append(longitude)
             pii_location_found.append(latitude)
         return pii_location_found
-
+    """
     @staticmethod
     def detect_pii_details(http_string, pii_details):
-        """ Method searches for PII details within a HTTP string
-            i.e. query string, headers, message body
-        """
+        # Method searches for PII details within a HTTP string
+        #    i.e. query string, headers, message body
+        #
         # Merge plain-text, base 64 and url encoded versions of PII
         # details into one dictionary.
         pii_details_found = []
@@ -87,3 +87,4 @@ class PiiDetection(object):
         pii_details_found = [k for k, v in
                         perm_personal_details.iteritems() if v in http_string]
         return pii_details_found
+"""
