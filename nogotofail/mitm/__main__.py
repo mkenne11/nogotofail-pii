@@ -123,6 +123,7 @@ def get_client_pii_identifiers():
         except Exception as e:
             logger.exception(str(e))
             return {}
+
 """
 # Currently client not passing PII details.
 def get_client_pii_details():
@@ -391,6 +392,7 @@ def run():
     # Get personal details collection from client if available
     # client_pii_details = get_client_pii_details()
     client_pii_location = get_client_pii_location()
+
     # Build PII collection.
     server_config_pii = {}
     server_config_pii["identifiers"] = args.pii_identifiers

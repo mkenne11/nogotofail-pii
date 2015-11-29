@@ -25,7 +25,7 @@ import ast
 
 from nogotofail.mitm.connection import handlers
 from nogotofail.mitm.connection.handlers import preconditions
-from nogotofail.mitm.util import close_quietly, truncate
+from nogotofail.mitm.util import close_quietly, truncate, PiiStore
 
 Application = namedtuple("Application", ["package", "version"])
 
@@ -58,6 +58,8 @@ class Client(object):
         self.logger = logging.getLogger("nogotofail.mitm")
         self._handshake_completed = False
         self.combined_pii = {}
+
+        self.pii_detection = None
 
     @property
     def available(self):
@@ -241,7 +243,7 @@ class Client(object):
         self.socket.sendall("\n")
 
     def _parse_headers(self, lines):
-        #try:
+        # try:
         raw_headers = [line.split(":", 1) for line in lines[1:]]
         headers = {entry.strip(): header.strip()
                    for entry, header in raw_headers}
@@ -326,6 +328,12 @@ class Client(object):
 
         # Create and store combined client and server PII parameters.
         self.combined_pii = self.combine_pii_items()
+
+        server_pii_identifiers = self.server.pii["identifiers"]
+        merge_pii_ids = personal_ids.copy()
+        merge_pii_ids.update(server_pii_identifiers)
+
+        self.pii_detection = PiiStore(merge_pii_ids, client_info["PII-Location"])
         # except Exception as e:
         #    self.logger.debug("Error in _parse_headers() method: %s." % str(e))
 
@@ -367,11 +375,16 @@ class Client(object):
 
         combined_pii = {}
         try:
-            ### Build combined PII identifier collections.
+            # Build combined PII identifier collections.
             combined_pii["identifiers"] = {}
 
-            combined_pii["identifiers"]["plain-text"] = \
-                self.info["PII-Identifiers"]["plain-text"]
+            server_pii_identifiers = self.server.pii["identifiers"]
+            merge_pii_ids = self.info["PII-Identifiers"]["plain-text"].copy()
+            merge_pii_ids.update(server_pii_identifiers)
+            combined_pii["identifiers"]["plain-text"] = merge_pii_ids
+
+            # combined_pii["identifiers"]["plain-text"] = \
+            #    self.info["PII-Identifiers"]["plain-text"]
             combined_pii["identifiers"]["base64"] = {}
             combined_pii["identifiers"]["url-encoded"] = {}
 
@@ -401,8 +414,7 @@ class Client(object):
             combined_pii["location"]["latitude"] = \
                 self.info["PII-Location"]["latitude"]
 
-            ### Build combined PII detail collections.
-            # config_pii_details = self.server.pii["details"]
+            # ## Build combined PII detail collections.
             # combined_pii["details"] = {}
 
             # combined_pii["details"]["plain-text"] = \

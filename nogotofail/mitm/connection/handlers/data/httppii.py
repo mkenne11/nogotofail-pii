@@ -56,28 +56,29 @@ class HttpPiiContentHandler(HttpContentHandler):
 
 
 @handler.passive(handlers)
-class HTTPPIIDetectionHandler(HttpPiiContentHandler):
+class HttpPiiDetectionHandler(HttpPiiContentHandler):
     """ Detects PII appearing in plaintext HTTP request and response
         content. """
 
     name = "httppii"
     description = "Detect PII in clear text http requests and responses"
 
+    def __init__(self, connection):
+        super(HttpPiiDetectionHandler, self).__init__(connection)
+        self.client = \
+            self.connection.app_blame.clients.get(connection.client_addr)
+
     def on_http_request(self, http_request):
-        client = self.connection.app_blame.clients.get(self.connection
-                        .client_addr)
-        if (client and http_request):
+        if (self.client and http_request):
             headers = http_request.headers_dict
             host = headers.get("host", self.connection.server_addr)
             url = host + http_request.path
             # Extract query string from request url.
             query_string = http_request.query_string
-            combined_pii = client.combined_pii
-
-            # Search for PII in HTTP query string
+            # Check for PII in HTTP query string
             if (query_string):
-                self._alert_on_pii_query_string(query_string, combined_pii, url)
-            # Search for PII in HTTP headers
+                self._alert_on_pii_query_string(query_string, url)
+            # Check for PII in HTTP headers
             valid_header_text = ""
             # Remove headers which won't contain PII
             # TODO: Check that headers isn't empty before proceeding.
@@ -85,42 +86,37 @@ class HTTPPIIDetectionHandler(HttpPiiContentHandler):
             if (valid_headers):
                 valid_header_text = \
                     str(valid_headers.values()).translate(None, "[']")
-                self._alert_on_pii_headers(valid_header_text,
-                                           combined_pii, url)
-            # Search for PII in HTTP message body
+                self._alert_on_pii_headers(valid_header_text, url)
+            # Check for PII in HTTP message body
             msg_content = http_request.pii_message_body
             if msg_content:
-                self._alert_on_pii_request_message_body(msg_content,
-                                                        combined_pii, url)
+                self._alert_on_pii_request_message_body(msg_content, url)
+            # self.log(logging.DEBUG, "Client pii_items %s" % str(self.client.pii_detection._pii_items))
 
     def on_http_response(self, http_response):
         """ Method processes unencrypted (non-HTTPS) HTTP response message bodies
         """
-        client = self.connection.app_blame.clients.get(self.connection.client_addr)
-        if (client and http_response):
+        if (self.client and http_response):
             url = ""
             msg_content = http_response.message_body
-            combined_pii = client.combined_pii
-            self._alert_on_pii_response_message_body(msg_content,
-                    combined_pii, url)
+            # Check for PII in HTTP message body
+            self._alert_on_pii_response_message_body(msg_content, url)
 
-    def _alert_on_pii_query_string(self, query_string, combined_pii, url):
+    def _alert_on_pii_query_string(self, query_string, url):
         """ Test and alert on instances of PII found in query string
         """
-        pii_identifiers_found = []
+        pii_items_found = []
         pii_location_found = []
         error_message = ""
         # Check if PII found in query string
-        if (combined_pii["identifiers"]):
-            pii_identifiers_found = piidu.detect_pii_ids(query_string,
-                                        combined_pii["identifiers"])
-        if (combined_pii["location"]):
-            pii_location_found = piidu.detect_pii_location(query_string,
-                                        combined_pii["location"])
-        if (pii_identifiers_found):
+        pii_items_found = \
+            self.client.pii_detection.detect_pii_items(query_string)
+        pii_location_found = \
+            self.client.pii_detection.detect_pii_location(query_string)
+        if (pii_items_found):
             error_message = [piidu.CAVEAT_PII_QRY_STRING,
-                  ": Personal IDs found in request query string ",
-                  str(pii_identifiers_found)]
+                  ": Personal items found in request query string ",
+                  str(pii_items_found)]
             self.log(logging.ERROR, "".join(error_message))
             self.log_event(logging.ERROR, connection.AttackEvent(
                            self.connection, self.name, True, url))
@@ -134,22 +130,20 @@ class HTTPPIIDetectionHandler(HttpPiiContentHandler):
                            self.connection, self.name, True, url))
             self.connection.vuln_notify(util.vuln.VULN_CLEARTEXT_HTTP_PII)
 
-    def _alert_on_pii_headers(self, header_text, combined_pii, url):
+    def _alert_on_pii_headers(self, header_text, url):
         """ Test and alert on instances of PII found in HTTP headers
         """
-        pii_identifiers_found = []
+        pii_items_found = []
         pii_location_found = []
-        # Check if PII found in query string
-        if (combined_pii["identifiers"]):
-            pii_identifiers_found = piidu.detect_pii_ids(header_text,
-                                        combined_pii["identifiers"])
-        if (combined_pii["location"]):
-            pii_location_found = piidu.detect_pii_location(header_text,
-                                        combined_pii["location"])
-        if (pii_identifiers_found):
+        # Check if PII found in message body
+        pii_items_found = \
+            self.client.pii_detection.detect_pii_items(header_text)
+        pii_location_found = \
+            self.client.pii_detection.detect_pii_location(header_text)
+        if (pii_items_found):
             error_message = [piidu.CAVEAT_PII_HEADER,
-                  ": Personal IDs found in request headers ",
-                  str(pii_identifiers_found)]
+                  ": Personal items found in request headers ",
+                  str(pii_items_found)]
             self.log(logging.ERROR, "".join(error_message))
             self.log_event(logging.ERROR, connection.AttackEvent(
                            self.connection, self.name, True, url))
@@ -163,22 +157,20 @@ class HTTPPIIDetectionHandler(HttpPiiContentHandler):
                            self.connection, self.name, True, url))
             self.connection.vuln_notify(util.vuln.VULN_CLEARTEXT_HTTP_PII)
 
-    def _alert_on_pii_request_message_body(self, msg_content, combined_pii, url):
+    def _alert_on_pii_request_message_body(self, msg_content, url):
         """ Test and alert on instances of PII found in HTTP message body
         """
-        pii_identifiers_found = []
+        pii_items_found = []
         pii_location_found = []
         # Check if PII found in message body
-        if (combined_pii["identifiers"]):
-            pii_identifiers_found = piidu.detect_pii_ids(msg_content,
-                                        combined_pii["identifiers"])
-        if (combined_pii["location"]):
-            pii_location_found = piidu.detect_pii_location(msg_content,
-                                        combined_pii["location"])
-        if (pii_identifiers_found):
+        pii_items_found = \
+            self.client.pii_detection.detect_pii_items(msg_content)
+        pii_location_found = \
+            self.client.pii_detection.detect_pii_location(msg_content)
+        if (pii_items_found):
             error_message = [piidu.CAVEAT_PII_MSG_BODY,
-                  ": Personal IDs found in request message body ",
-                  str(pii_identifiers_found)]
+                  ": Personal items found in request message body ",
+                  str(pii_items_found)]
             self.log(logging.ERROR, "".join(error_message))
             self.log_event(logging.ERROR, connection.AttackEvent(
                            self.connection, self.name, True, url))
@@ -192,22 +184,20 @@ class HTTPPIIDetectionHandler(HttpPiiContentHandler):
                            self.connection, self.name, True, url))
             self.connection.vuln_notify(util.vuln.VULN_CLEARTEXT_HTTP_PII)
 
-    def _alert_on_pii_response_message_body(self, msg_content, combined_pii, url):
+    def _alert_on_pii_response_message_body(self, msg_content, url):
         """ Test and alert on instances of PII found in HTTP message body
         """
-        pii_identifiers_found = []
+        pii_items_found = []
         pii_location_found = []
         # Check if PII found in message body
-        if (combined_pii["identifiers"]):
-            pii_identifiers_found = piidu.detect_pii_ids(msg_content,
-                                        combined_pii["identifiers"])
-        if (combined_pii["location"]):
-            pii_location_found = piidu.detect_pii_location(msg_content,
-                                        combined_pii["location"])
-        if (pii_identifiers_found):
+        pii_items_found = \
+            self.client.pii_detection.detect_pii_items(msg_content)
+        pii_location_found = \
+            self.client.pii_detection.detect_pii_location(msg_content)
+        if (pii_items_found):
             error_message = [piidu.CAVEAT_PII_MSG_BODY,
-                  ": Personal IDs found in response message body ",
-                  str(pii_identifiers_found)]
+                  ": Personal items found in response message body ",
+                  str(pii_items_found)]
             self.log(logging.ERROR, "".join(error_message))
             self.log_event(logging.ERROR, connection.AttackEvent(
                            self.connection, self.name, True, url))
