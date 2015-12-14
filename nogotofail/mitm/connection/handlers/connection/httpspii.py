@@ -17,7 +17,7 @@ from nogotofail.mitm.connection.handlers.connection import LoggingHandler
 from nogotofail.mitm.connection.handlers.store import handler
 from nogotofail.mitm.event import connection
 from nogotofail.mitm import util
-from nogotofail.mitm.util import PiiDetection as piidu
+import nogotofail.mitm.util.pii as piiutil
 
 
 class HttpsPiiContentHandler(LoggingHandler):
@@ -152,14 +152,14 @@ class HttpsPiiDetectionHandler(HttpsPiiContentHandler):
         # If PII is found in query string raise INFO message in
         # message and event logs
         if (pii_items_found):
-            error_message = [piidu.CAVEAT_PII_QRY_STRING,
+            error_message = [piiutil.CAVEAT_PII_QRY_STRING,
                   ": Personal IDs found in request query string ",
                   str(pii_items_found)]
             self.log(logging.INFO, "".join(error_message))
             self.log_event(logging.INFO, connection.AttackEvent(
                            self.connection, self.name, True, url))
         if (pii_location_found):
-            error_message = [piidu.CAVEAT_PII_QRY_STRING,
+            error_message = [piiutil.CAVEAT_PII_QRY_STRING,
                   ": Location found in request query string ",
                   "(longitude, latitude) - ", str(pii_location_found)]
             self.log(logging.INFO, "".join(error_message))
@@ -177,14 +177,14 @@ class HttpsPiiDetectionHandler(HttpsPiiContentHandler):
         pii_location_found = \
             self.client.pii_detection.detect_pii_location(header_text)
         if (pii_items_found):
-            error_message = [piidu.CAVEAT_PII_HEADER,
+            error_message = [piiutil.CAVEAT_PII_HEADER,
                   ": Personal IDs found in request headers ",
                   str(pii_items_found)]
             self.log(logging.INFO, "".join(error_message))
             self.log_event(logging.INFO, connection.AttackEvent(
                            self.connection, self.name, True, url))
         if (pii_location_found):
-            error_message = [piidu.CAVEAT_PII_HEADER,
+            error_message = [piiutil.CAVEAT_PII_HEADER,
                  ": Location found in request headers ",
                  "(longitude, latitude) - ", str(pii_location_found)]
             self.log(logging.INFO, "".join(error_message))
@@ -204,14 +204,14 @@ class HttpsPiiDetectionHandler(HttpsPiiContentHandler):
         # If PII is found in message body raise INFO message in
         # message and event logs
         if (pii_items_found):
-            error_message = [piidu.CAVEAT_PII_MSG_BODY,
+            error_message = [piiutil.CAVEAT_PII_MSG_BODY,
                   ": Personal IDs found in request message body ",
                   str(pii_items_found)]
             self.log(logging.INFO, "".join(error_message))
             self.log_event(logging.INFO, connection.AttackEvent(
                            self.connection, self.name, True, url))
         if (pii_location_found):
-            error_message = [piidu.CAVEAT_PII_MSG_BODY,
+            error_message = [piiutil.CAVEAT_PII_MSG_BODY,
                   ": Location found in request message body ",
                   "(longitude, latitude) - ", str(pii_location_found)]
             self.log(logging.INFO, "".join(error_message))
@@ -229,14 +229,14 @@ class HttpsPiiDetectionHandler(HttpsPiiContentHandler):
         pii_location_found = \
             self.client.pii_detection.detect_pii_location(msg_content)
         if (pii_items_found):
-            error_message = [piidu.CAVEAT_PII_MSG_BODY,
+            error_message = [piiutil.CAVEAT_PII_MSG_BODY,
                   ": Personal IDs found in response message body ",
                   str(pii_items_found)]
             self.log(logging.INFO, "".join(error_message))
             self.log_event(logging.INFO, connection.AttackEvent(
                            self.connection, self.name, True, url))
         if (pii_location_found):
-            error_message = [piidu.CAVEAT_PII_MSG_BODY,
+            error_message = [piiutil.CAVEAT_PII_MSG_BODY,
                   ": Location found in response message body ",
                   "(longitude, latitude) - ", str(pii_location_found)]
             self.log(logging.INFO, "".join(error_message))

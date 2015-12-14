@@ -274,32 +274,36 @@ public class AttacksPreferenceFragment extends PreferenceFragment {
   /**
    * Gets the set of client personal and device ids.
    *
-   * @returns personal ids or {@code null} for default.
+   * @returns personal items or {@code null} for default.
    */
-  public static Set<String> getPersonalIds(Context context) {
-    Set<String> clientPersonalIds = new HashSet<String>();
+  public static Set<String> getPersonalItems(Context context) {
+    Set<String> clientPersonalItems = new HashSet<String>();
 
     String android_id = getAndroidId(context);
     Info advertising_info = getAdvertisingId(context);
     String device_id = getDeviceId(context);
     String mac_address = getMACAddress(context);
-    //Location device_location = getDeviceLocation(context);
 
     if (android_id != null) {
-        clientPersonalIds.add("'android_id':'" + android_id + "'");
+        clientPersonalItems.add("'android_id':'" + android_id + "'");
     }
     if (advertising_info != null) {
-        clientPersonalIds.add("'google_advertising_id':'" + advertising_info.getId() + "'");
+        clientPersonalItems.add("'google_advertising_id':'" + advertising_info.getId() + "'");
     }
     if (device_id != null) {
-        clientPersonalIds.add("'device_id':'" + device_id + "'");
+        clientPersonalItems.add("'device_id':'" + device_id + "'");
      }
     if (mac_address != null) {
-        clientPersonalIds.add("'mac_address':'" + mac_address + "'");
+        clientPersonalItems.add("'mac_address':'" + mac_address + "'");
     }
-    return clientPersonalIds;
+    return clientPersonalItems;
   }
 
+  /**
+   * Gets the device's current location.
+   *
+   * @returns device location or {@code null} for default.
+   */
   public static Set<String> getPersonalLocation(Context context) {
     Set<String> clientPersonalLocation = new HashSet<String>();
 
