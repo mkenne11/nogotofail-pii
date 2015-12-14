@@ -25,7 +25,7 @@ import ast
 
 from nogotofail.mitm.connection import handlers
 from nogotofail.mitm.connection.handlers import preconditions
-from nogotofail.mitm.util import close_quietly, truncate
+from nogotofail.mitm.util import close_quietly, truncate, PiiStore
 
 Application = namedtuple("Application", ["package", "version"])
 
@@ -58,6 +58,8 @@ class Client(object):
         self.logger = logging.getLogger("nogotofail.mitm")
         self._handshake_completed = False
         self.combined_pii = {}
+
+        self.pii_detection = None
 
     @property
     def available(self):
@@ -241,7 +243,7 @@ class Client(object):
         self.socket.sendall("\n")
 
     def _parse_headers(self, lines):
-        #try:
+        # try:
         raw_headers = [line.split(":", 1) for line in lines[1:]]
         headers = {entry.strip(): header.strip()
                    for entry, header in raw_headers}
@@ -287,8 +289,8 @@ class Client(object):
             # TODO: Think if HTML encoding is needed for PII information.
             # e.g. ',",&,<,> characters.
 
-        client_info["PII-Details"] = {}
-        client_info["PII-Details"]["plain-text"] = {}
+        # client_info["PII-Details"] = {}
+        # client_info["PII-Details"]["plain-text"] = {}
 
         """
         if ("PII-Details" in headers):
@@ -326,6 +328,12 @@ class Client(object):
 
         # Create and store combined client and server PII parameters.
         self.combined_pii = self.combine_pii_items()
+
+        server_pii_identifiers = self.server.pii["identifiers"]
+        merge_pii_ids = personal_ids.copy()
+        merge_pii_ids.update(server_pii_identifiers)
+
+        self.pii_detection = PiiStore(merge_pii_ids, client_info["PII-Location"])
         # except Exception as e:
         #    self.logger.debug("Error in _parse_headers() method: %s." % str(e))
 
@@ -367,11 +375,16 @@ class Client(object):
 
         combined_pii = {}
         try:
-            ### Build combined PII identifier collections.
+            # Build combined PII identifier collections.
             combined_pii["identifiers"] = {}
 
-            combined_pii["identifiers"]["plain-text"] = \
-                self.info["PII-Identifiers"]["plain-text"]
+            server_pii_identifiers = self.server.pii["identifiers"]
+            merge_pii_ids = self.info["PII-Identifiers"]["plain-text"].copy()
+            merge_pii_ids.update(server_pii_identifiers)
+            combined_pii["identifiers"]["plain-text"] = merge_pii_ids
+
+            # combined_pii["identifiers"]["plain-text"] = \
+            #    self.info["PII-Identifiers"]["plain-text"]
             combined_pii["identifiers"]["base64"] = {}
             combined_pii["identifiers"]["url-encoded"] = {}
 
@@ -401,46 +414,45 @@ class Client(object):
             combined_pii["location"]["latitude"] = \
                 self.info["PII-Location"]["latitude"]
 
-            ### Build combined PII detail collections.
-            config_pii_details = self.server.pii["details"]
-            combined_pii["details"] = {}
+            # ## Build combined PII detail collections.
+            # combined_pii["details"] = {}
 
-            combined_pii["details"]["plain-text"] = \
-                self.info["PII-Details"]["plain-text"]
-            combined_pii["details"]["base64"] = {}
-            combined_pii["details"]["url-encoded"] = {}
+            # combined_pii["details"]["plain-text"] = \
+            #    self.info["PII-Details"]["plain-text"]
+            # combined_pii["details"]["base64"] = {}
+            # combined_pii["details"]["url-encoded"] = {}
 
             # Add each of the server (config) PII detail item to the combine
             # PII collection. Overwrite value with server config version if
             # any conflict.
-            for id_key, id_value in config_pii_details.iteritems():
-                combined_pii["details"]["plain-text"][id_key] = id_value
+            # for id_key, id_value in config_pii_details.iteritems():
+            #    combined_pii["details"]["plain-text"][id_key] = id_value
 
-            personal_details = combined_pii["details"]["plain-text"]
-            personal_details_base64 = {}
-            personal_details_urlencoded = {}
-            #device_location = \
+            # personal_details = combined_pii["details"]["plain-text"]
+            # personal_details_base64 = {}
+            # personal_details_urlencoded = {}
+            # device_location = \
             #    client_info["PII-Details"]["plain-text"]["device_location"]
 
-            #self.logger.debug(" *** Method combine_pii_items(): " +
+            # self.logger.debug(" *** Method combine_pii_items(): " +
             #    "personal_details.iteritems - %s" % str(personal_details))
             # Create base64 dictionary of PII details
-            for id_key, id_value in personal_details.iteritems():
+            # for id_key, id_value in personal_details.iteritems():
                 # Add a base64 version of ID to dictionary
-                personal_details_base64[id_key + " (base64)"] = \
-                    base64.b64encode(id_value)
-            combined_pii["details"]["base64"] = personal_details_base64
+            #    personal_details_base64[id_key + " (base64)"] = \
+            #        base64.b64encode(id_value)
+            # combined_pii["details"]["base64"] = personal_details_base64
 
             # Create url encoded dictionary of PII details
-            for id_key, id_value in personal_details.iteritems():
+            # for id_key, id_value in personal_details.iteritems():
                 # Add a url encoded version of ID to dictionary if its different
                 # from the plain text version & if the item it isn't a
                 # sub-dictionary.
-                id_value_urln = urllib.quote_plus(id_value)
-                if (id_value != id_value_urln):
-                    personal_details_urlencoded[id_key +
-                        " (url encoded)"] = id_value_urln
-            combined_pii["details"]["url-encoded"] = personal_details_urlencoded
+            #    id_value_urln = urllib.quote_plus(id_value)
+            #    if (id_value != id_value_urln):
+            #        personal_details_urlencoded[id_key +
+            #            " (url encoded)"] = id_value_urln
+            # combined_pii["details"]["url-encoded"] = personal_details_urlencoded
 
             # TODO: Think if HTML encoding is needed for PII information.
             # e.g. ',",&,<,> characters.

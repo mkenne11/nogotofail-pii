@@ -46,7 +46,7 @@ traffic_logger = logging.getLogger("traffic")
 # PII configuration file section names
 SECTION_MITM = "nogotofail.mitm"
 SECTION_PII_IDENTIFIERS = "nogotofail.identifiers.pii"
-SECTION_PII_DETAILS = "nogotofail.details.pii"
+# SECTION_PII_DETAILS = "nogotofail.details.pii"
 
 def build_selector(MITM_all=False):
     def handler_selector(connection, app_blame):
@@ -123,6 +123,7 @@ def get_client_pii_identifiers():
         except Exception as e:
             logger.exception(str(e))
             return {}
+
 """
 # Currently client not passing PII details.
 def get_client_pii_details():
@@ -221,7 +222,7 @@ def parse_args():
         has_mitm_section = configBase.has_section(SECTION_MITM)
         has_pii_identifiers_section = \
             configBase.has_section(SECTION_PII_IDENTIFIERS)
-        has_pii_details_section = configBase.has_section(SECTION_PII_DETAILS)
+        # has_pii_details_section = configBase.has_section(SECTION_PII_DETAILS)
 
         config_copy = copy.copy(configBase)
         # Check if the "nogotofail.mitm" section exists.
@@ -237,9 +238,9 @@ def parse_args():
             config_pii_ids = dict(config_copy.items(SECTION_PII_IDENTIFIERS))
             config["pii_identifiers"] = config_pii_ids
         # Check if the "nogotofail.details.pii" section exists.
-        if has_pii_details_section:
-            config_pii_details = dict(config_copy.items(SECTION_PII_DETAILS))
-            config["pii_details"] = config_pii_details
+        # if has_pii_details_section:
+        #    config_pii_details = dict(config_copy.items(SECTION_PII_DETAILS))
+        #    config["pii_details"] = config_pii_details
 
     else:
         config = {}
@@ -391,17 +392,18 @@ def run():
     # Get personal details collection from client if available
     # client_pii_details = get_client_pii_details()
     client_pii_location = get_client_pii_location()
+
     # Build PII collection.
     server_config_pii = {}
     server_config_pii["identifiers"] = args.pii_identifiers
-    server_config_pii["details"] = args.pii_details
+    # server_config_pii["details"] = args.pii_details
 
     logger.info("Starting...")
 
     try:
         logger.info("Server: config args - " + str(args))
         logger.info("Server: PII identifier args - " + str(args.pii_identifiers))
-        logger.info("Server: PII details args - " + str(args.pii_details))
+        # logger.info("Server: PII details args - " + str(args.pii_details))
 
         logger.info("Client: PII IDs - " + str(client_pii_identifiers))
         #logger.info("Client: PII details - " + str(client_pii_details))
