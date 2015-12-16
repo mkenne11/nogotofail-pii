@@ -100,8 +100,7 @@ public class RouterConnectionHandler implements RouterSocketClient.ConnectionHan
   private static final String HEADER_SUPPORTED_DATA_ATTACKS_LOWER_CASE =
       HEADER_SUPPORTED_DATA_ATTACKS.toLowerCase(Locale.US);
   // Client PII header strings
-  private static final String HEADER_PII_IDENTIFIERS = "PII-Identifiers";
-  private static final String HEADER_PII_DETAILS = "PII-Details";
+  private static final String HEADER_PII_ITEMS = "PII-Items";
   private static final String HEADER_PII_LOCATION = "PII-Location";
 
   /**
@@ -174,19 +173,12 @@ public class RouterConnectionHandler implements RouterSocketClient.ConnectionHan
         writeHandshakeRequestHeader(
             out, HEADER_ENABLED_DATA_ATTACKS, TextUtils.join(",", requestedEnabledDataAttackIds));
       }
-      Set <String> requestedPersonalIds =
-              AttacksPreferenceFragment.getPersonalIds(mContext);
-      if (requestedPersonalIds != null) {
+      Set <String> requestedPersonalItems =
+              AttacksPreferenceFragment.getPersonalItems(mContext);
+      if (requestedPersonalItems != null) {
         writeHandshakeRequestHeader(
-                out, HEADER_PII_IDENTIFIERS, "{" + TextUtils.join(",", requestedPersonalIds) + "}");
+                out, HEADER_PII_ITEMS, "{" + TextUtils.join(",", requestedPersonalItems) + "}");
       }
-      /*
-      Set <String> requestedPersonalDetails =
-              AttacksPreferenceFragment.getPersonalDetails(mContext);
-      if (requestedPersonalDetails != null) {
-        writeHandshakeRequestHeader(
-                out, HEADER_PII_DETAILS, "{" + TextUtils.join(",", requestedPersonalDetails) + "}");
-      }*/
       Set <String> requestedPersonalLocation =
               AttacksPreferenceFragment.getPersonalLocation(mContext);
       if (requestedPersonalLocation != null) {

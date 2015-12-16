@@ -16,8 +16,6 @@ limitations under the License.
 from collections import namedtuple
 import logging
 import socket
-import select
-import sys
 import ssl
 import time
 import urllib
@@ -57,8 +55,6 @@ class Client(object):
         self.address = self.socket.getpeername()[0]
         self.logger = logging.getLogger("nogotofail.mitm")
         self._handshake_completed = False
-        self.combined_pii = {}
-
         self.pii_detection = None
 
     @property
@@ -233,9 +229,6 @@ class Client(object):
         data = self.info.get("Data-Attacks", self.server.default_data)
         data_str = ",".join([attack.name for attack in data])
         self.socket.sendall("Data-Attacks: %s\n" % data_str)
-        # TODO: Determine if the Personal-Ids dictionary needs to be passed back
-        # to the client.
-
         supported_data = ",".join([
             attack
             for attack in handlers.data.handlers.map])
@@ -265,49 +258,26 @@ class Client(object):
             attacks = headers["Attacks"].split(",")
             attacks = map(str.strip, attacks)
             client_info["Attacks"] = preconditions.filter_preconditions([
-                    handlers.connection.handlers.map[attack] for attack in attacks
-                    if attack in handlers.connection.handlers.map])
+                handlers.connection.handlers.map[attack]
+                for attack in attacks
+                if attack in handlers.connection.handlers.map])
 
         if "Data-Attacks" in headers:
             attacks = headers["Data-Attacks"].split(",")
             attacks = map(str.strip, attacks)
             client_info["Data-Attacks"] = preconditions.filter_preconditions(
-                    [handlers.data.handlers.map[attack]
-                    for attack in attacks
-                    if attack in
-                    handlers.data.handlers.map])
+                [handlers.data.handlers.map[attack]
+                for attack in attacks
+                if attack in handlers.data.handlers.map])
 
-        if ("PII-Identifiers" in headers):
-            # Define Personal IDs container
-            client_info["PII-Identifiers"] = {}
+        if ("PII-Items" in headers):
+            client_pii_items = ast.literal_eval(headers["PII-Items"])
 
-            # Convert Personal IDs string to a dictionary
-            personal_ids = ast.literal_eval(headers["PII-Identifiers"])
-            # Add the personal_ids dictionary to the client_info dictionary
-            client_info["PII-Identifiers"]["plain-text"] = personal_ids
-
-            # TODO: Think if HTML encoding is needed for PII information.
-            # e.g. ',",&,<,> characters.
-
-        # client_info["PII-Details"] = {}
-        # client_info["PII-Details"]["plain-text"] = {}
-
-        """
-        if ("PII-Details" in headers):
-            # Define Personal Details containers
-            client_info["PII-Details"] = {}
-            personal_details = {}
-            personal_details_base64 = {}
-            personal_details_urlencoded = {}
-
-            # Convert Personal Details string to a dictionary
-            personal_details = ast.literal_eval(headers["PII-Details"])
-
-            client_info["PII-Details"]["plain-text"] = personal_details
-        """
+        # TODO: Think if HTML encoding is needed for PII information.
+        # e.g. ',",&,<,> characters.
         if ("PII-Location" in headers):
-            client_info["PII-Location"] = {}
-            # Convert Personal Location string to a dictionary
+            client_pii_location = {}
+            # Convert personal location string to a dictionary
             personal_location = ast.literal_eval(headers["PII-Location"])
             if (personal_location):
                 longitude = personal_location.get("longitude", "0.00000")
@@ -315,27 +285,23 @@ class Client(object):
             else:
                 longitude = "0.00000"
                 latitude = "0.00000"
-            client_info["PII-Location"]["longitude"] = \
+            client_pii_location["longitude"] = \
                 truncate(float(longitude), 2)
-            client_info["PII-Location"]["latitude"] = \
+            client_pii_location["latitude"] = \
                 truncate(float(latitude), 2)
 
         # Store the raw headers as well in case a handler needs something the
         # client sent in an additional header
         client_info["headers"] = headers
+
         self.info = client_info
-        # self.logger.debug("Client_info method: %s." % client_info)
 
-        # Create and store combined client and server PII parameters.
-        self.combined_pii = self.combine_pii_items()
-
-        server_pii_identifiers = self.server.pii["identifiers"]
-        merge_pii_ids = personal_ids.copy()
-        merge_pii_ids.update(server_pii_identifiers)
-
-        self.pii_detection = PiiStore(merge_pii_ids, client_info["PII-Location"])
-        # except Exception as e:
-        #    self.logger.debug("Error in _parse_headers() method: %s." % str(e))
+        # Merge client and server pii items.
+        server_pii_items = self.server.pii["items"]
+        merge_pii_ids = client_pii_items.copy()
+        merge_pii_ids.update(server_pii_items)
+        # Create pii_detection attribute which holds pii items.
+        self.pii_detection = PiiStore(merge_pii_ids, client_pii_location)
 
     def _response_select_fn(self):
         try:
@@ -366,100 +332,6 @@ class Client(object):
             callback.fn(True, data)
         else:
             self.logger.debug("Blame: Response for unknown txid %d from %s", txid, self.address)
-
-    def combine_pii_items(self):
-        """ Method creates a combined collection of client and server config pii
-            values
-        """
-        import base64
-
-        combined_pii = {}
-        try:
-            # Build combined PII identifier collections.
-            combined_pii["identifiers"] = {}
-
-            server_pii_identifiers = self.server.pii["identifiers"]
-            merge_pii_ids = self.info["PII-Identifiers"]["plain-text"].copy()
-            merge_pii_ids.update(server_pii_identifiers)
-            combined_pii["identifiers"]["plain-text"] = merge_pii_ids
-
-            # combined_pii["identifiers"]["plain-text"] = \
-            #    self.info["PII-Identifiers"]["plain-text"]
-            combined_pii["identifiers"]["base64"] = {}
-            combined_pii["identifiers"]["url-encoded"] = {}
-
-            personal_ids = combined_pii["identifiers"]["plain-text"]
-            personal_ids_base64 = {}
-            personal_ids_urlencoded = {}
-
-            # Create base64 dictionary of PII identifiers
-            for id_key, id_value in personal_ids.iteritems():
-                # Add a base64 version of ID to dictionary
-                personal_ids_base64[id_key + " (base64)"] = base64.b64encode(id_value)
-            combined_pii["identifiers"]["base64"] = personal_ids_base64
-
-            # Create url encoded dictionary of PII identifiers
-            for id_key, id_value in personal_ids.iteritems():
-                # Add a url encoded version of ID to dictionary if its different
-                # from the plain text version
-                id_value_urln = urllib.quote_plus(id_value)
-                if (id_value != id_value_urln):
-                    personal_ids_urlencoded[id_key + " (url encoded)"] = id_value_urln
-            combined_pii["identifiers"]["url-encoded"] = personal_ids_urlencoded
-
-            ### Build PII location collection.
-            combined_pii["location"] = {}
-            combined_pii["location"]["longitude"] = \
-                self.info["PII-Location"]["longitude"]
-            combined_pii["location"]["latitude"] = \
-                self.info["PII-Location"]["latitude"]
-
-            # ## Build combined PII detail collections.
-            # combined_pii["details"] = {}
-
-            # combined_pii["details"]["plain-text"] = \
-            #    self.info["PII-Details"]["plain-text"]
-            # combined_pii["details"]["base64"] = {}
-            # combined_pii["details"]["url-encoded"] = {}
-
-            # Add each of the server (config) PII detail item to the combine
-            # PII collection. Overwrite value with server config version if
-            # any conflict.
-            # for id_key, id_value in config_pii_details.iteritems():
-            #    combined_pii["details"]["plain-text"][id_key] = id_value
-
-            # personal_details = combined_pii["details"]["plain-text"]
-            # personal_details_base64 = {}
-            # personal_details_urlencoded = {}
-            # device_location = \
-            #    client_info["PII-Details"]["plain-text"]["device_location"]
-
-            # self.logger.debug(" *** Method combine_pii_items(): " +
-            #    "personal_details.iteritems - %s" % str(personal_details))
-            # Create base64 dictionary of PII details
-            # for id_key, id_value in personal_details.iteritems():
-                # Add a base64 version of ID to dictionary
-            #    personal_details_base64[id_key + " (base64)"] = \
-            #        base64.b64encode(id_value)
-            # combined_pii["details"]["base64"] = personal_details_base64
-
-            # Create url encoded dictionary of PII details
-            # for id_key, id_value in personal_details.iteritems():
-                # Add a url encoded version of ID to dictionary if its different
-                # from the plain text version & if the item it isn't a
-                # sub-dictionary.
-            #    id_value_urln = urllib.quote_plus(id_value)
-            #    if (id_value != id_value_urln):
-            #        personal_details_urlencoded[id_key +
-            #            " (url encoded)"] = id_value_urln
-            # combined_pii["details"]["url-encoded"] = personal_details_urlencoded
-
-            # TODO: Think if HTML encoding is needed for PII information.
-            # e.g. ',",&,<,> characters.
-        except Exception as e:
-            self.logger.debug(" Error in method combine_pii_items(): %s."
-                              % str(e))
-        return combined_pii
 
 
 class Server:

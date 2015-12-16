@@ -18,7 +18,7 @@ from nogotofail.mitm.connection.handlers.data import handlers
 from nogotofail.mitm.connection.handlers.data import HttpContentHandler
 from nogotofail.mitm.connection.handlers.store import handler
 from nogotofail.mitm.event import connection
-from nogotofail.mitm.util import PiiDetection as piidu
+import nogotofail.mitm.util.pii as piiutil
 import logging
 
 
@@ -114,7 +114,7 @@ class HttpPiiDetectionHandler(HttpPiiContentHandler):
         pii_location_found = \
             self.client.pii_detection.detect_pii_location(query_string)
         if (pii_items_found):
-            error_message = [piidu.CAVEAT_PII_QRY_STRING,
+            error_message = [piiutil.CAVEAT_PII_QRY_STRING,
                   ": Personal items found in request query string ",
                   str(pii_items_found)]
             self.log(logging.ERROR, "".join(error_message))
@@ -122,7 +122,7 @@ class HttpPiiDetectionHandler(HttpPiiContentHandler):
                            self.connection, self.name, True, url))
             self.connection.vuln_notify(util.vuln.VULN_CLEARTEXT_HTTP_PII)
         if (pii_location_found):
-            error_message = [piidu.CAVEAT_PII_QRY_STRING,
+            error_message = [piiutil.CAVEAT_PII_QRY_STRING,
                   ": Location found in request query string ",
                   "(longitude, latitude) - ", str(pii_location_found)]
             self.log(logging.ERROR, "".join(error_message))
@@ -141,7 +141,7 @@ class HttpPiiDetectionHandler(HttpPiiContentHandler):
         pii_location_found = \
             self.client.pii_detection.detect_pii_location(header_text)
         if (pii_items_found):
-            error_message = [piidu.CAVEAT_PII_HEADER,
+            error_message = [piiutil.CAVEAT_PII_HEADER,
                   ": Personal items found in request headers ",
                   str(pii_items_found)]
             self.log(logging.ERROR, "".join(error_message))
@@ -149,7 +149,7 @@ class HttpPiiDetectionHandler(HttpPiiContentHandler):
                            self.connection, self.name, True, url))
             self.connection.vuln_notify(util.vuln.VULN_CLEARTEXT_HTTP_PII)
         if (pii_location_found):
-            error_message = [piidu.CAVEAT_PII_HEADER,
+            error_message = [piiutil.CAVEAT_PII_HEADER,
                  ": Location found in request headers ",
                  "(longitude, latitude) - ", str(pii_location_found)]
             self.log(logging.ERROR, "".join(error_message))
@@ -168,7 +168,7 @@ class HttpPiiDetectionHandler(HttpPiiContentHandler):
         pii_location_found = \
             self.client.pii_detection.detect_pii_location(msg_content)
         if (pii_items_found):
-            error_message = [piidu.CAVEAT_PII_MSG_BODY,
+            error_message = [piiutil.CAVEAT_PII_MSG_BODY,
                   ": Personal items found in request message body ",
                   str(pii_items_found)]
             self.log(logging.ERROR, "".join(error_message))
@@ -176,7 +176,7 @@ class HttpPiiDetectionHandler(HttpPiiContentHandler):
                            self.connection, self.name, True, url))
             self.connection.vuln_notify(util.vuln.VULN_CLEARTEXT_HTTP_PII)
         if (pii_location_found):
-            error_message = [piidu.CAVEAT_PII_MSG_BODY,
+            error_message = [piiutil.CAVEAT_PII_MSG_BODY,
                   ": Location found in request message body ",
                   "(longitude, latitude) - ", str(pii_location_found)]
             self.log(logging.ERROR, "".join(error_message))
@@ -195,7 +195,7 @@ class HttpPiiDetectionHandler(HttpPiiContentHandler):
         pii_location_found = \
             self.client.pii_detection.detect_pii_location(msg_content)
         if (pii_items_found):
-            error_message = [piidu.CAVEAT_PII_MSG_BODY,
+            error_message = [piiutil.CAVEAT_PII_MSG_BODY,
                   ": Personal items found in response message body ",
                   str(pii_items_found)]
             self.log(logging.ERROR, "".join(error_message))
@@ -203,7 +203,7 @@ class HttpPiiDetectionHandler(HttpPiiContentHandler):
                            self.connection, self.name, True, url))
             self.connection.vuln_notify(util.vuln.VULN_CLEARTEXT_HTTP_PII)
         if (pii_location_found):
-            error_message = [piidu.CAVEAT_PII_MSG_BODY,
+            error_message = [piiutil.CAVEAT_PII_MSG_BODY,
                   ": Location found in response message body ",
                   "(longitude, latitude) - ", str(pii_location_found)]
             self.log(logging.ERROR, "".join(error_message))

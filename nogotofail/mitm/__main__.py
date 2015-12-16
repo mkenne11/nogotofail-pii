@@ -45,8 +45,7 @@ traffic_logger = logging.getLogger("traffic")
 
 # PII configuration file section names
 SECTION_MITM = "nogotofail.mitm"
-SECTION_PII_IDENTIFIERS = "nogotofail.identifiers.pii"
-# SECTION_PII_DETAILS = "nogotofail.details.pii"
+SECTION_PII_ITEMS = "nogotofail.pii"
 
 def build_selector(MITM_all=False):
     def handler_selector(connection, app_blame):
@@ -107,10 +106,10 @@ def build_data_selector(default_handlers, MITM_all, prob_attack=0.5):
         return internal + passive + active
     return data_selector
 
-def get_client_pii_identifiers():
+def get_client_pii_items():
 
-    def client_pii_identifiers(connection, app_blame):
-        pii_identifiers = {}
+    def client_pii_items(connection, app_blame):
+        pii_items = {}
         try:
             if (not app_blame.client_available(connection.client_addr)):
                 return internal + []
@@ -118,31 +117,12 @@ def get_client_pii_identifiers():
             client_info = app_blame.clients.get(connection.client_addr)
             client_info = client_info.info if client_info else None
             if client_info:
-                pii_identifiers = client_info["PII-Identifiers"]
-            return pii_identifiers
+                pii_items = client_info.pii_detection.pii_items_plaintext
+            return pii_items
         except Exception as e:
             logger.exception(str(e))
             return {}
 
-"""
-# Currently client not passing PII details.
-def get_client_pii_details():
-
-    def client_pii_details(connection, app_blame):
-        pii_details = {}
-        try:
-            if (not app_blame.client_available(connection.client_addr)):
-                return internal + []
-            # Figure out our possible handlers
-            client_info = app_blame.clients.get(connection.client_addr)
-            client_info = client_info.info if client_info else None
-            if client_info:
-                pii_details = client_info["PII-Details"]
-            return pii_details
-        except Exception as e:
-            logger.exception(str(e))
-            return {}
-"""
 def get_client_pii_location():
 
     def client_pii_location(connection, app_blame):
@@ -154,7 +134,8 @@ def get_client_pii_location():
             client_info = app_blame.clients.get(connection.client_addr)
             client_info = client_info.info if client_info else None
             if client_info:
-                pii_location = client_info["PII-Location"]
+                pii_location = client_info.pii_detection.pii_location
+                # client_info["PII-Location"]
             return pii_location
         except Exception as e:
             logger.exception(str(e))
@@ -220,9 +201,7 @@ def parse_args():
         configBase = ConfigParser.SafeConfigParser()
         configBase.read(args.config)
         has_mitm_section = configBase.has_section(SECTION_MITM)
-        has_pii_identifiers_section = \
-            configBase.has_section(SECTION_PII_IDENTIFIERS)
-        # has_pii_details_section = configBase.has_section(SECTION_PII_DETAILS)
+        has_pii_items_section = configBase.has_section(SECTION_PII_ITEMS)
 
         config_copy = copy.copy(configBase)
         # Check if the "nogotofail.mitm" section exists.
@@ -233,15 +212,10 @@ def parse_args():
             if "data" in config_mitm:
                 config_mitm["data"] = config_mitm["data"].split(" ")
             config = config_mitm
-        # Check if the "nogotofail.identifiers.pii" section exists.
-        if has_pii_identifiers_section:
-            config_pii_ids = dict(config_copy.items(SECTION_PII_IDENTIFIERS))
-            config["pii_identifiers"] = config_pii_ids
-        # Check if the "nogotofail.details.pii" section exists.
-        # if has_pii_details_section:
-        #    config_pii_details = dict(config_copy.items(SECTION_PII_DETAILS))
-        #    config["pii_details"] = config_pii_details
-
+        # Check if the "nogotofail.pii" section exists.
+        if has_pii_items_section:
+            config_pii_items = dict(config_copy.items(SECTION_PII_ITEMS))
+            config["pii_items"] = config_pii_items
     else:
         config = {}
 
@@ -387,26 +361,19 @@ def run():
     ssl_selector = build_ssl_selector(attack_cls, args.probability, args.all)
     data_selector = build_data_selector(data_cls, args.all,
                                         prob_attack=args.probability)
-    # Get personal ids collection from client if available
-    client_pii_identifiers = get_client_pii_identifiers()
-    # Get personal details collection from client if available
-    # client_pii_details = get_client_pii_details()
+    # Get pii from client if available
+    client_pii_items = get_client_pii_items()
     client_pii_location = get_client_pii_location()
 
     # Build PII collection.
     server_config_pii = {}
-    server_config_pii["identifiers"] = args.pii_identifiers
-    # server_config_pii["details"] = args.pii_details
+    server_config_pii["items"] = args.pii_items
 
     logger.info("Starting...")
 
     try:
         logger.info("Server: config args - " + str(args))
-        logger.info("Server: PII identifier args - " + str(args.pii_identifiers))
-        # logger.info("Server: PII details args - " + str(args.pii_details))
-
-        logger.info("Client: PII IDs - " + str(client_pii_identifiers))
-        #logger.info("Client: PII details - " + str(client_pii_details))
+        logger.info("Client: PII items - " + str(client_pii_items))
         logger.info("Client: PII location - " + str(client_pii_location))
 
     except Exception as e:

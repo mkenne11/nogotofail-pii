@@ -18,6 +18,12 @@ import base64
 import urllib
 
 
+# PII log entry caveats
+CAVEAT_PII_QRY_STRING = "PII-QueryString"
+CAVEAT_PII_HEADER = "PII-Header"
+CAVEAT_PII_MSG_BODY = "PII-Message-Body"
+
+
 class PiiDetection(object):
     """General functions that can be used to search for PII items in
        HTTP strings e.g. headers, query strings, bodies.
@@ -101,10 +107,13 @@ class PiiStore(object):
     # Dictionary contains specified pii items and base64 and url-encoded
     # variations of these.
     _pii_items = {}
+    # Dictionary holds plain text version of pii items.
+    _pii_items_plaintext = {}
     # Dictionary containing the device's location.
     _pii_location = {}
 
     def __init__(self, pii_items, pii_location):
+        self._pii_items_plaintext = pii_items
         pii_items_plaintext = pii_items
         pii_items_base64 = {}
         pii_items_urlencoded = {}
@@ -122,10 +131,22 @@ class PiiStore(object):
         # Combine PII items and variations into a single dictionary.
         self._pii_items = {k: v for d in
             (pii_items_plaintext, pii_items_base64, pii_items_urlencoded)
-                 for k, v in d.iteritems()}
+            for k, v in d.iteritems()}
         # Assign device location to dictionary.
         self._pii_location["longitude"] = pii_location["longitude"]
         self._pii_location["latitude"] = pii_location["latitude"]
+
+    @property
+    def pii_items(self):
+        return self._pii_items
+
+    @property
+    def pii_items_plaintext(self):
+        return self._pii_items_plaintext
+
+    @property
+    def pii_location(self):
+        return self._pii_location
 
     def detect_pii_items(self, http_string):
         """ Method searches for PII items within a HTTP string
