@@ -80,8 +80,7 @@ class HttpPiiDetectionHandler(HttpPiiContentHandler):
                 self._alert_on_pii_query_string(query_string, url)
             # Check for PII in HTTP headers
             valid_header_text = ""
-            # Remove headers which won't contain PII
-            # TODO: Check that headers isn't empty before proceeding.
+            # Fetch a dictionary of headers which could contain PII.
             valid_headers = http_request.pii_headers_dict
             if (valid_headers):
                 valid_header_text = \
@@ -91,7 +90,6 @@ class HttpPiiDetectionHandler(HttpPiiContentHandler):
             msg_content = http_request.pii_message_body
             if msg_content:
                 self._alert_on_pii_request_message_body(msg_content, url)
-            # self.log(logging.DEBUG, "Client pii_items %s" % str(self.client.pii_detection._pii_items))
 
     def on_http_response(self, http_response):
         """ Method processes unencrypted (non-HTTPS) HTTP response message bodies
@@ -110,9 +108,9 @@ class HttpPiiDetectionHandler(HttpPiiContentHandler):
         error_message = ""
         # Check if PII found in query string
         pii_items_found = \
-            self.client.pii_detection.detect_pii_items(query_string)
+            self.client.pii_store.detect_pii_items(query_string)
         pii_location_found = \
-            self.client.pii_detection.detect_pii_location(query_string)
+            self.client.pii_store.detect_pii_location(query_string)
         if (pii_items_found):
             error_message = [piiutil.CAVEAT_PII_QRY_STRING,
                   ": Personal items found in request query string ",
@@ -137,9 +135,9 @@ class HttpPiiDetectionHandler(HttpPiiContentHandler):
         pii_location_found = []
         # Check if PII found in message body
         pii_items_found = \
-            self.client.pii_detection.detect_pii_items(header_text)
+            self.client.pii_store.detect_pii_items(header_text)
         pii_location_found = \
-            self.client.pii_detection.detect_pii_location(header_text)
+            self.client.pii_store.detect_pii_location(header_text)
         if (pii_items_found):
             error_message = [piiutil.CAVEAT_PII_HEADER,
                   ": Personal items found in request headers ",
@@ -164,9 +162,9 @@ class HttpPiiDetectionHandler(HttpPiiContentHandler):
         pii_location_found = []
         # Check if PII found in message body
         pii_items_found = \
-            self.client.pii_detection.detect_pii_items(msg_content)
+            self.client.pii_store.detect_pii_items(msg_content)
         pii_location_found = \
-            self.client.pii_detection.detect_pii_location(msg_content)
+            self.client.pii_store.detect_pii_location(msg_content)
         if (pii_items_found):
             error_message = [piiutil.CAVEAT_PII_MSG_BODY,
                   ": Personal items found in request message body ",
@@ -191,9 +189,9 @@ class HttpPiiDetectionHandler(HttpPiiContentHandler):
         pii_location_found = []
         # Check if PII found in message body
         pii_items_found = \
-            self.client.pii_detection.detect_pii_items(msg_content)
+            self.client.pii_store.detect_pii_items(msg_content)
         pii_location_found = \
-            self.client.pii_detection.detect_pii_location(msg_content)
+            self.client.pii_store.detect_pii_location(msg_content)
         if (pii_items_found):
             error_message = [piiutil.CAVEAT_PII_MSG_BODY,
                   ": Personal items found in response message body ",

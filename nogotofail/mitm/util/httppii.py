@@ -36,7 +36,6 @@ class HTTPPiiRequestWrapper(HTTPRequestWrapper):
         """ Returns the request headers as a dictionary of types which can
             hold PII."""
         # Remove headers which won't contain PII
-        # TODO: Check that headers isn't empty before proceeding.
         valid_pii_headers = {k: v for k, v in self.headers_dict.iteritems()
                          if k not in IGNORE_HEADERS}
         return valid_pii_headers
