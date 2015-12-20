@@ -28,10 +28,17 @@ class HttpsPiiContentHandler(LoggingHandler):
 
     ssl = False
 
+    def __init__(self, connection):
+        super(HttpsPiiContentHandler, self).__init__(connection)
+        self.client = \
+            self.connection.app_blame.clients.get(connection.client_addr)
+
     def on_ssl(self, client_hello):
-        self.ssl = True
         self.client_session_id = client_hello.session_id
         return True
+
+    def on_ssl_establish(self):
+        self.ssl = True
 
     def on_request(self, request):
         http = util.http.parse_request(request)
@@ -80,11 +87,6 @@ class HttpsPiiDetectionHandler(HttpsPiiContentHandler):
     ca = util.CertificateAuthority(MITM_CA)
     certificate = None
 
-    def __init__(self, connection):
-        super(HttpsPiiDetectionHandler, self).__init__(connection)
-        self.client = \
-            self.connection.app_blame.clients.get(connection.client_addr)
-
     def on_certificate(self, server_cert):
         """ Terminate on_certificate interaction between server and client &
             insert a trusted certificate in traffic to server to initiate a
@@ -119,7 +121,6 @@ class HttpsPiiDetectionHandler(HttpsPiiContentHandler):
             # Check for PII in HTTP headers
             valid_header_text = ""
             # Remove headers which won't contain PII
-            # TODO: Check that headers isn't empty before proceeding.
             valid_headers = http_request.pii_headers_dict
             if (valid_headers):
                 valid_header_text = \
@@ -146,9 +147,9 @@ class HttpsPiiDetectionHandler(HttpsPiiContentHandler):
         pii_location_found = []
         # Check if PII found in query string
         pii_items_found = \
-            self.client.pii_detection.detect_pii_items(query_string)
+            self.client.pii_store.detect_pii_items(query_string)
         pii_location_found = \
-            self.client.pii_detection.detect_pii_location(query_string)
+            self.client.pii_store.detect_pii_location(query_string)
         # If PII is found in query string raise INFO message in
         # message and event logs
         if (pii_items_found):
@@ -173,9 +174,9 @@ class HttpsPiiDetectionHandler(HttpsPiiContentHandler):
         pii_location_found = []
         # Check if PII found in header
         pii_items_found = \
-            self.client.pii_detection.detect_pii_items(header_text)
+            self.client.pii_store.detect_pii_items(header_text)
         pii_location_found = \
-            self.client.pii_detection.detect_pii_location(header_text)
+            self.client.pii_store.detect_pii_location(header_text)
         if (pii_items_found):
             error_message = [piiutil.CAVEAT_PII_HEADER,
                   ": Personal IDs found in request headers ",
@@ -198,9 +199,9 @@ class HttpsPiiDetectionHandler(HttpsPiiContentHandler):
         pii_location_found = []
         # Check if PII found in message body
         pii_items_found = \
-            self.client.pii_detection.detect_pii_items(msg_content)
+            self.client.pii_store.detect_pii_items(msg_content)
         pii_location_found = \
-            self.client.pii_detection.detect_pii_location(msg_content)
+            self.client.pii_store.detect_pii_location(msg_content)
         # If PII is found in message body raise INFO message in
         # message and event logs
         if (pii_items_found):
@@ -225,9 +226,9 @@ class HttpsPiiDetectionHandler(HttpsPiiContentHandler):
         pii_location_found = []
         # Check if PII found in query string
         pii_items_found = \
-            self.client.pii_detection.detect_pii_items(msg_content)
+            self.client.pii_store.detect_pii_items(msg_content)
         pii_location_found = \
-            self.client.pii_detection.detect_pii_location(msg_content)
+            self.client.pii_store.detect_pii_location(msg_content)
         if (pii_items_found):
             error_message = [piiutil.CAVEAT_PII_MSG_BODY,
                   ": Personal IDs found in response message body ",

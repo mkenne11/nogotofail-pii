@@ -55,7 +55,7 @@ class Client(object):
         self.address = self.socket.getpeername()[0]
         self.logger = logging.getLogger("nogotofail.mitm")
         self._handshake_completed = False
-        self.pii_detection = None
+        self.pii_store = None
 
     @property
     def available(self):
@@ -300,8 +300,8 @@ class Client(object):
         server_pii_items = self.server.pii["items"]
         merge_pii_ids = client_pii_items.copy()
         merge_pii_ids.update(server_pii_items)
-        # Create pii_detection attribute which holds pii items.
-        self.pii_detection = PiiStore(merge_pii_ids, client_pii_location)
+        # Create pii_store attribute which holds pii items.
+        self.pii_store = PiiStore(merge_pii_ids, client_pii_location)
 
     def _response_select_fn(self):
         try:

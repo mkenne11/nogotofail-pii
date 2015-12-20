@@ -17,7 +17,6 @@ limitations under the License.
 import base64
 import urllib
 
-
 # PII log entry caveats
 CAVEAT_PII_QRY_STRING = "PII-QueryString"
 CAVEAT_PII_HEADER = "PII-Header"
@@ -29,10 +28,6 @@ class PiiDetection(object):
        HTTP strings e.g. headers, query strings, bodies.
     """
 
-    # HTTP headers to ignore not containing PII
-    IGNORE_HEADERS = ["host", "connection", "content-length", "accept",
-                      "user-agent", "content-type", "accept-encoding",
-                      "accept-language", "accept-charset"]
     # HTTP request and response valid "content-type" header values
     VALID_CONTENT_TYPES = ["text/html", "application/json",
                            "text/plain", "text/xml", "application/xml"]

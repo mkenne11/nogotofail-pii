@@ -117,7 +117,7 @@ def get_client_pii_items():
             client_info = app_blame.clients.get(connection.client_addr)
             client_info = client_info.info if client_info else None
             if client_info:
-                pii_items = client_info.pii_detection.pii_items_plaintext
+                pii_items = client_info.pii_store.pii_items_plaintext
             return pii_items
         except Exception as e:
             logger.exception(str(e))
@@ -134,7 +134,7 @@ def get_client_pii_location():
             client_info = app_blame.clients.get(connection.client_addr)
             client_info = client_info.info if client_info else None
             if client_info:
-                pii_location = client_info.pii_detection.pii_location
+                pii_location = client_info.pii_store.pii_location
                 # client_info["PII-Location"]
             return pii_location
         except Exception as e:
