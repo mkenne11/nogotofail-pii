@@ -32,8 +32,8 @@ import org.apache.http.protocol.HTTP;
 import org.json.JSONObject;
 
 /*
- *  CleartextHttpPiiQueryStringTest simulates the scenario where PII appears
- *  in the query string of HTTP requests.
+ *  HttpsPiiTest simulates the scenario where PII appears
+ *  in the HTTPS requests and responses.
  */
 public class HttpsPiiTest extends BackgroundTestForHttpPii {
 
@@ -45,8 +45,7 @@ public class HttpsPiiTest extends BackgroundTestForHttpPii {
         super(app_context);
     }
     /**
-     * Creates a HTTP GET request with PII in query string
-     * @throws Exception
+     * Runs tests with PII in HTTPS request and responses.
      */
     @Override
     protected void runTest() throws Exception {
@@ -63,6 +62,10 @@ public class HttpsPiiTest extends BackgroundTestForHttpPii {
         }
     }
 
+    /**
+     * Runs tests inserting PII in request query strings.
+     * @throws Exception
+     */
     protected void RunPiiQueryStringTest() throws Exception {
         try {
             // Send request with PII identifier in query string
@@ -101,6 +104,9 @@ public class HttpsPiiTest extends BackgroundTestForHttpPii {
         }
     }
 
+    /**
+     * Runs tests inserting PII in request headers.
+     */
     protected void RunPiiHeaderTest() throws Exception {
         try {
             // Send request with PII identifier in HTTP header
@@ -141,6 +147,9 @@ public class HttpsPiiTest extends BackgroundTestForHttpPii {
         }
     }
 
+    /**
+     * Runs tests inserting PII in request and response message bodies.
+     */
     protected void RunPiiMessageBodyTest() throws Exception {
         HttpClient client = new DefaultHttpClient();
         HttpConnectionParams.setConnectionTimeout(client.getParams(), CONNECTION_TIMEOUT); //Timeout Limit

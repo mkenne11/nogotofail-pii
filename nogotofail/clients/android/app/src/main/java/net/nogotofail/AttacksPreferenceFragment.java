@@ -302,54 +302,75 @@ public class AttacksPreferenceFragment extends PreferenceFragment {
   /**
    * Gets the device's current location.
    *
-   * @returns device location or {@code null} for default.
+   * @returns device location or {@code null} if not available.
    */
-  public static Set<String> getPersonalLocation(Context context) {
-    Set<String> clientPersonalLocation = new HashSet<String>();
+  public static Set<String> getDeviceLocation(Context context) {
+    Set<String> clientDeviceLocation = new HashSet<String>();
 
-    Location device_location = getDeviceLocation(context);
+    Location device_location;
+    try {
+        LocationManager location_manager =
+          (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
+
+        Criteria criteria = new Criteria();
+        criteria.setAccuracy(Criteria.ACCURACY_FINE);
+        String location_provider = location_manager.getBestProvider(criteria, false);
+        device_location = location_manager.getLastKnownLocation(location_provider);
+    }
+    catch (Exception e) {
+        device_location = null;
+    }
     if (device_location != null) {
         String latitude = String.valueOf(device_location.getLatitude());
         String longitude = String.valueOf(device_location.getLongitude());
 
-        clientPersonalLocation.add("'latitude':'" + latitude + "', " +
+        clientDeviceLocation.add("'latitude':'" + latitude + "', " +
             "'longitude':'" + longitude + "'");
     }
-    return clientPersonalLocation;
+    return clientDeviceLocation;
   }
 
   /*
-   * Properties which return client personal and device ids.
+   * Gets the device's Android ID.
+   *
+   * @returns the device's Android ID or {@code null} if not available.
    */
   private static String getAndroidId(Context context) {
-    String android_id =
-              Secure.getString(context.getContentResolver(), Secure.ANDROID_ID);
-    return android_id;
+    return Secure.getString(context.getContentResolver(), Secure.ANDROID_ID);
   }
 
+  /*
+   * Gets the user's Advertising ID.
+   *
+   * @returns the Advertising ID or {@code null} if not available.
+   */
   private static Info getAdvertisingId(Context context) {
-    Info advertising_info = null;
+    Info advertising_info;
     try {
         advertising_info = AdvertisingIdClient.getAdvertisingIdInfo(context);
+        /**
+         * TODO: Include check to alert when device user has enabled "Limit Ad Tracking"
+         *       for their Google account. This will allow testers to verify apps sending the
+         *       user's "Android ID" to advertisers when they shouldn't.
+         */
+         //final boolean ad_tracking_limited = advertising_info.isLimitAdTrackingEnabled();
     }
-    catch (IOException e) {
-          // Unrecoverable error connecting to Google Play services (e.g.,
-          // the old version of the service doesn't support getting AdvertisingId).
-
-          //} catch (GooglePlayServicesAvailabilityException e) {
-          // Encountered a recoverable error connecting to Google Play services.
-
-        } catch (GooglePlayServicesRepairableException e) {
-          // Encountered a recoverable error connecting to Google Play services.
-
-        } catch (GooglePlayServicesNotAvailableException e) {
-          // Google Play services is not available entirely.
-        }
-        //final String advertising_id = advertising_info.getId();
-        //final boolean ad_tracking_limited = advertising_info.isLimitAdTrackingEnabled();
-        return advertising_info;
+    catch (GooglePlayServicesRepairableException | GooglePlayServicesNotAvailableException |
+           IOException e) {
+        /** Encountered a recoverable error connecting to Google Play services OR
+          *  Google Play services is not available entirely OR
+          * a general IO exception.
+          */
+        advertising_info = null;
     }
+    return advertising_info;
+  }
 
+  /*
+   * Gets the device's Device ID.
+   *
+   * @returns the Device ID or {@code null} if not available.
+   */
   private static String getDeviceId(Context context) {
     //Retrieve a reference to an instance of TelephonyManager
     TelephonyManager telephonyManager =
@@ -365,6 +386,11 @@ public class AttacksPreferenceFragment extends PreferenceFragment {
     }
   }
 
+  /*
+   * Gets the device's MAC Address.
+   *
+   * @returns the MAC Address or {@code null} if not available.
+   */
   private static String getMACAddress (Context context) {
     WifiManager wifi_manager = (WifiManager)context.getSystemService(Context.WIFI_SERVICE);
     WifiInfo wifi_info = wifi_manager.getConnectionInfo();
@@ -379,20 +405,27 @@ public class AttacksPreferenceFragment extends PreferenceFragment {
     }
   }
 
+  /*
+   * Gets the device's location i.e. longitude and latitude.
+   *
+   * @returns the location or {@code null} if not available.
+   */
+  /*
   private static Location getDeviceLocation (Context context) {
-    Location last_known_location = null;
+    Location last_known_location;
     try {
-          LocationManager location_manager =
-          (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
+        LocationManager location_manager =
+        (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
 
-          Criteria criteria = new Criteria();
-          criteria.setAccuracy(Criteria.ACCURACY_FINE);
-          String location_provider = location_manager.getBestProvider(criteria, false);
-          last_known_location = location_manager.getLastKnownLocation(location_provider);
+        Criteria criteria = new Criteria();
+        criteria.setAccuracy(Criteria.ACCURACY_FINE);
+        String location_provider = location_manager.getBestProvider(criteria, false);
+        last_known_location = location_manager.getLastKnownLocation(location_provider);
     }
     catch (Exception e) {
-
+        last_known_location = null;
     }
     return last_known_location;
   }
+  */
 }
