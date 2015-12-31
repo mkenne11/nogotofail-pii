@@ -23,7 +23,7 @@ import net.nogotofail.mitmtester.util.ClientProperties;
 
 /**
  * Extension of BackgroundTest class with awareness of application context.
- * Note. Application context is needed to access system resources (Device IDs,
+ * Note. Application context is needed to access system resources (Device IDs &
  * location) and application resources (strings.xml).
  */
 public abstract class BackgroundTestForHttpPii extends BackgroundTest {

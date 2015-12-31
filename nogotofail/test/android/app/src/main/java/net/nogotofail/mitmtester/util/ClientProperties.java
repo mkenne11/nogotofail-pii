@@ -32,37 +32,33 @@ import com.google.android.gms.common.GooglePlayServicesRepairableException;
 
 import java.io.IOException;
 
-/**
- * Class used to fetch client device details.
+ /*
+ *  ClientProperties provides methods to retrieve user and device details.
  */
 public class ClientProperties {
 
     public static String getAndroidId(Context context) {
-        String android_id =
-                Settings.Secure.getString(context.getContentResolver(), Settings.Secure.ANDROID_ID);
-        return android_id;
+        return Settings.Secure.getString(context.getContentResolver(), Settings.Secure.ANDROID_ID);
     }
 
     public static Info getAdvertisingId(Context context) {
-        Info advertising_info = null;
+        Info advertising_info;
         try {
             advertising_info = AdvertisingIdClient.getAdvertisingIdInfo(context);
-
-        } catch (IOException e) {
-            // Unrecoverable error connecting to Google Play services (e.g.,
-            // the old version of the service doesn't support getting AdvertisingId).
-
-            //} catch (GooglePlayServicesAvailabilityException e) {
-            // Encountered a recoverable error connecting to Google Play services.
-
-        } catch (GooglePlayServicesRepairableException e) {
-            // Encountered a recoverable error connecting to Google Play services.
-
-        } catch (GooglePlayServicesNotAvailableException e) {
-            // Google Play services is not available entirely.
+            /**
+             * TODO: Include check to alert when device user has enabled "Limit Ad Tracking"
+             *       for their Google account. This will allow testers to verify apps sending the
+             *       user's "Android ID" to advertisers when they shouldn't.
+             */
+            //final boolean ad_tracking_limited = advertising_info.isLimitAdTrackingEnabled();
+        } catch (GooglePlayServicesRepairableException | GooglePlayServicesNotAvailableException |
+                 IOException e) {
+            /** Encountered a recoverable error connecting to Google Play services OR
+             *  Google Play services is not available entirely OR
+             * a general IO exception.
+             */
+            advertising_info = null;
         }
-        //final String advertising_id = advertising_info.getId();
-        //final boolean ad_tracking_limited = advertising_info.isLimitAdTrackingEnabled();
         return advertising_info;
     }
 

@@ -180,7 +180,7 @@ public class RouterConnectionHandler implements RouterSocketClient.ConnectionHan
                 out, HEADER_PII_ITEMS, "{" + TextUtils.join(",", requestedPersonalItems) + "}");
       }
       Set <String> requestedPersonalLocation =
-              AttacksPreferenceFragment.getPersonalLocation(mContext);
+              AttacksPreferenceFragment.getDeviceLocation(mContext);
       if (requestedPersonalLocation != null) {
         writeHandshakeRequestHeader(
                 out, HEADER_PII_LOCATION, "{" + TextUtils.join(",", requestedPersonalLocation) + "}");

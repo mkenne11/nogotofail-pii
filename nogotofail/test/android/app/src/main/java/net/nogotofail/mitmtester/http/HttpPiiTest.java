@@ -32,8 +32,8 @@ import org.apache.http.protocol.HTTP;
 import org.json.JSONObject;
 
 /*
- *  CleartextHttpPiiQueryStringTest simulates the scenario where PII appears
- *  in the query string of HTTP requests.
+ *  HttpPiiTest simulates the scenario where PII appears
+ *  in the HTTP requests and responses.
  */
 public class HttpPiiTest extends BackgroundTestForHttpPii {
 
@@ -44,8 +44,7 @@ public class HttpPiiTest extends BackgroundTestForHttpPii {
         super(app_context);
     }
     /**
-     * Creates a HTTP GET request with PII in query string
-     * @throws Exception
+     * Runs tests with PII in HTTP request and responses.
      */
     @Override
     protected void runTest() throws Exception {
@@ -59,6 +58,9 @@ public class HttpPiiTest extends BackgroundTestForHttpPii {
         RunPiiMessageBodyTest();
     }
 
+    /**
+     * Runs tests inserting PII in request query strings.
+     */
     protected void RunPiiQueryStringTest() throws Exception {
         try {
             // Send request with PII identifier in query string
@@ -97,6 +99,9 @@ public class HttpPiiTest extends BackgroundTestForHttpPii {
         }
     }
 
+    /**
+     * Runs tests inserting PII in request headers.
+     */
     protected void RunPiiHeaderTest() throws Exception {
         try {
             // Send request with PII identifier in HTTP header
@@ -137,6 +142,9 @@ public class HttpPiiTest extends BackgroundTestForHttpPii {
         }
     }
 
+    /**
+     * Runs tests inserting PII in request and response message bodies.
+     */
     protected void RunPiiMessageBodyTest() throws Exception {
         HttpClient client = new DefaultHttpClient();
         HttpConnectionParams.setConnectionTimeout(client.getParams(), CONNECTION_TIMEOUT); //Timeout Limit
@@ -206,7 +214,7 @@ public class HttpPiiTest extends BackgroundTestForHttpPii {
 
             // Checking response
             if(response!=null){
-                //Get the data in the entity
+                // Get the data in the entity
                 response_code = response.getStatusLine().getStatusCode();
                 response_message = response.getStatusLine().getReasonPhrase();
                 setTestResult(Integer.toString(response_code) + " " + response_message);
