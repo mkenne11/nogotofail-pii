@@ -1,5 +1,5 @@
 r'''
-Copyright 2014 Google Inc. All rights reserved.
+Copyright 2016 Google Inc. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,11 +18,13 @@ limitations under the License.
     logs.
 """
 
-# from nogotofail.mitm import util
-# from nogotofail.mitm.util import PiiDetection
 import abc
 import json
 import re
+from nogotofail.mitm.util.pii import CAVEAT_PII_QRY_STRING, CAVEAT_PII_HEADER
+from nogotofail.mitm.util.pii import CAVEAT_PII_MSG_BODY
+
+CAVEAT_PII = "PII-"
 
 
 class DataReport(object):
@@ -563,11 +565,6 @@ class PIIDataReport(DataReport):
     PII_DETAILS_MESSAGE = ": Personal details"
     PII_LOCATION_MESSAGE = ": Location"
 
-    CAVEAT_PII = "PII-"
-    CAVEAT_PII_QRY_STRING = "PII-QueryString:"
-    CAVEAT_PII_HEADER = "PII-Header:"
-    CAVEAT_PII_MSG_BODY = "PII-Message-Body:"
-
     def __init__(self, application_log_info, event_log_info):
         super(PIIDataReport, self) \
             .__init__(application_log_info, event_log_info)
@@ -628,7 +625,7 @@ class PIIDataReport(DataReport):
                  event_type not in IGNORE_EVENT_TYPE and
                  ( self.HTTP_PII_HANDLER in handler or
                    self.HTTPS_PII_HANDLER in handler ) and
-                 self.CAVEAT_PII in message_text ):
+                   CAVEAT_PII in message_text ):
                 # If app_item with app_name exists in app_pii_dict
                 try:
                     app_item = app_pii_dict[app_name]
@@ -655,15 +652,15 @@ class PIIDataReport(DataReport):
                     # unencrypted items for the current app/domain.
                     if (pii_found_list):
                         # If unencrypted_element exists fetch it
-                        if (self.CAVEAT_PII_QRY_STRING in message_text):
+                        if (CAVEAT_PII_QRY_STRING in message_text):
                             item_elements["pii_query_string"] = \
                                 list(set(item_elements["pii_query_string"]
                                 + pii_found_list))
-                        elif (self.CAVEAT_PII_HEADER in message_text):
+                        elif (CAVEAT_PII_HEADER in message_text):
                             item_elements["pii_http_header"] = \
                                 list(set(item_elements["pii_http_header"]
                                 + pii_found_list))
-                        elif (self.CAVEAT_PII_MSG_BODY in message_text):
+                        elif (CAVEAT_PII_MSG_BODY in message_text):
                             item_elements["pii_http_body"] = \
                                 list(set(item_elements["pii_http_body"]
                                 + pii_found_list))
@@ -691,11 +688,11 @@ class PIIDataReport(DataReport):
                         item_elements = encrypted_elements
                     # If pii were found add the pii items to the encrypted/
                     # unencrypted items for the current app/domain.
-                    if (self.CAVEAT_PII_QRY_STRING in message_text):
+                    if (CAVEAT_PII_QRY_STRING in message_text):
                         item_elements["pii_query_string"] = pii_found_list
-                    elif (self.CAVEAT_PII_HEADER in message_text):
+                    elif (CAVEAT_PII_HEADER in message_text):
                         item_elements["pii_http_header"] = pii_found_list
-                    elif (self.CAVEAT_PII_MSG_BODY in message_text):
+                    elif (CAVEAT_PII_MSG_BODY in message_text):
                         item_elements["pii_http_body"] = pii_found_list
                     query_string_count = {}
                     key_value_count = {}
