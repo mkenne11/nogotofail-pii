@@ -487,8 +487,6 @@ class Server:
             except:
                 pass
 
-    ### Noseyparker methods
-
     def get_pii(self):
         """ Function return server config pii values.
         """
