@@ -13,7 +13,7 @@ TODO: Summary reporting of PII issues showing accumulated PII sent to applicatio
 
 ## <a name="pii_detection_handlers"></a>PII Detection Handlers
 
-There are 2 handlers (attacks) available that inspect mobile application traffic for PII:
+There are two handlers available that inspect mobile application traffic for PII:
 - **httppii** - parses unencrypted (HTTP) traffic
 - **httpspii** - parses encrypted (HTTPS) traffic
 
@@ -44,7 +44,7 @@ trafficfile=/var/log/nogotofail/mitm.traffic
 
 The **httppii** handler is a "data" handler and analyses the http data stream for PII information. The **httpspii** is an "attack" handler and manipulates the TLS connection.
 
-Note. Tampering of the TLS connection by the **httpspii** handler adds latency to requests, so it is recommended that you choose an attack "probability" value which minimizes the chance of request timeouts. Trial and error is required to find the correct probability for your setup.
+Note. Tampering of the TLS connection by the **httpspii** handler adds latency to requests and it is recommended that you choose an attack "probability" value which minimizes the chance of request timeouts. Trial and error is required to find a suitable probability for your setup.
 
 ### b. Specifying PII Items
 
@@ -78,8 +78,7 @@ To assist assessing the impact of PII disclosure in this example two arbitrary c
 <a name="client_pii"></a>
 #### Client PII
 
-A number of PII items are automatically collected by the client from the device. The PII items collected are described in the table below.
-Note. These PII labels are reserved and cannot be used in the server configuration file.
+A number of PII items are automatically collected by the client from the device. The PII items the client collects are:
 
 | Reserved PII | Description |
 |--------------|---|
@@ -89,4 +88,6 @@ Note. These PII labels are reserved and cannot be used in the server configurati
 | google_ad_id | The Google Advertising ID currently assigned to the device  |
 | ip_address | The devices IP address  |
 
-In terms of the arbitrary PII categories discussed earlier client PII information is typicallyconsidered to be **PII identifiers** as they uniquely identify a individual user of device.
+Note. These PII labels are reserved and cannot be used in the server configuration file.
+
+In terms of the arbitrary PII categories discussed earlier client PII information is typically considered to be **PII identifiers** as they uniquely identify a individual user of device.
