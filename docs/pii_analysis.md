@@ -49,8 +49,9 @@ Note. Tampering of the TLS connection by the **httpspii** handler adds latency t
 ### b. Specifying PII Items
 
 nogotofail has two types of PII that are detected in mobile mobile application traffic:
-1. Information manually specified in the server configuration file. See the [Server PII]() section.
-2. Device information collected by the client app. See the [Client PII](Client PII) section.
+
+1. Information manually specified in the server configuration file. See the [Server PII](#server_pii) section.
+2. Device information collected by the client app. See the [Client PII](#client_pii) section.
 
 <a name="server_pii"></a>
 #### Server PII
