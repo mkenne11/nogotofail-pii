@@ -7,7 +7,7 @@ Key features include:
 - Auto-collection of PII data from the client's device
 - Ability to define custom PII test data (using the server's configuration file)
 
-This functionality is designed to assist in the assessment of two privacy risks - the disclosure of personal information in unencrypted traffic, and the excessive disclosure of personal information to application services and third parties i.e. advertising and analytics services.
+This functionality is designed to assist in assessing two privacy risks - the disclosure of personal information in unencrypted traffic, and the excessive disclosure of personal information to application services and third parties i.e. advertising and analytics services.
 
 TODO: Summary reporting of PII issues showing accumulated PII sent to application services over an  application session.
 
@@ -49,8 +49,8 @@ Note. Tampering of the TLS connection by the **httpspii** handler adds latency t
 ### b. Specifying PII Items
 
 nogotofail has two types of PII that are detected in mobile mobile application traffic:
-1. Information manually specified in the server configuration file. See the [Server PII][#server_pii] section.
-2. Device information collected by the client app. See the [Client PII][#client_pii] section.
+1. Information manually specified in the server configuration file. See the [Server PII]() section.
+2. Device information collected by the client app. See the [Client PII](Client PII) section.
 
 <a name="server_pii"></a>
 #### Server PII
