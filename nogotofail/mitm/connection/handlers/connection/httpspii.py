@@ -76,14 +76,14 @@ class HttpsPiiContentHandler(LoggingHandler):
 
 
 @handler(handlers, default=True)
-@preconditions.requires_files(files=["ca-chain-cleartext.key.cert.pem"])
+@preconditions.requires_files(files=["mitm_key_cert_chain.pem"])
 class HttpsPiiDetectionHandler(HttpsPiiContentHandler):
 
     name = "httpspii"
     description = (
         "Testing to see if encrypted PII is present in HTTPS content.")
     # Location of trusted MitM certificate.
-    MITM_CA = "./ca-chain-cleartext.key.cert.pem"
+    MITM_CA = "./mitm_key_cert_chain.pem"
     ca = util.CertificateAuthority(MITM_CA)
     certificate = None
 
