@@ -77,7 +77,7 @@ class HttpsPiiContentHandler(LoggingHandler):
 
 @handler(handlers, default=True)
 @preconditions.requires_files(files=["mitm_key_cert_chain.pem"])
-class HttpsPiiDetectionHandler(HttpsPiiContentHandler):
+class HttpsPiiDetection(HttpsPiiContentHandler):
 
     name = "httpspii"
     description = (

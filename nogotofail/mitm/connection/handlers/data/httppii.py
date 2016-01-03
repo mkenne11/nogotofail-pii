@@ -56,7 +56,7 @@ class HttpPiiContentHandler(HttpContentHandler):
 
 
 @handler.passive(handlers)
-class HttpPiiDetectionHandler(HttpPiiContentHandler):
+class HttpPiiDetection(HttpPiiContentHandler):
     """ Detects PII appearing in plaintext HTTP request and response
         content. """
 
@@ -64,7 +64,7 @@ class HttpPiiDetectionHandler(HttpPiiContentHandler):
     description = "Detect PII in clear text http requests and responses"
 
     def __init__(self, connection):
-        super(HttpPiiDetectionHandler, self).__init__(connection)
+        super(HttpPiiDetection, self).__init__(connection)
         self.client = \
             self.connection.app_blame.clients.get(connection.client_addr)
 
