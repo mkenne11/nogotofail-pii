@@ -21,11 +21,14 @@ limitations under the License.
 import abc
 import json
 import re
-from nogotofail.mitm.util.pii import CAVEAT_PII_QRY_STRING, CAVEAT_PII_HEADER
-from nogotofail.mitm.util.pii import CAVEAT_PII_MSG_BODY
+# from nogotofail.mitm.util.pii import CAVEAT_PII_QRY_STRING, CAVEAT_PII_HEADER
+# from nogotofail.mitm.util.pii import CAVEAT_PII_MSG_BODY
 
 CAVEAT_PII = "PII-"
-
+# PII log entry caveats
+CAVEAT_PII_QRY_STRING = "PII-QueryString"
+CAVEAT_PII_HEADER = "PII-Header"
+CAVEAT_PII_MSG_BODY = "PII-Message-Body"
 
 class DataReport(object):
     """ Base class for data reports
@@ -383,17 +386,17 @@ class EventReport(DataReport):
         """ Returns an event_entry dictionary
         """
         # Fetch message pii_items_found if it exists and convert to list.
-        pii_items_found = message.get("values_found", "")
-        pii_items_list = []
-        if pii_items_found:
-            pii_items_list = (pii_items_found.replace("[", "")).replace("]", "") \
-                .split(",")
-        event_entry = {#"event_type": message["type"],
+        # pii_items_found = message.get("values_found", "")
+        # pii_items_list = []
+        # if pii_items_found:
+        #    pii_items_list = (pii_items_found.replace("[", "")).replace("]", "") \
+        #        .split(",")
+        event_entry = {
                        "connection_id": connection["connection_id"],
                        "date": message["date"],
                        "time": message["time"],
                        "message": message["text"],
-                       "pii_items_found": pii_items_list,
+                       # "pii_items_found": pii_items_list,
                        "handler": connection["handler"],
                        "domain": domain
                       }
@@ -454,7 +457,7 @@ class EventSummaryReport(DataReport):
             app_events_list = []
             app_event_entry = {}
             events_list = []
-            app_entry_exists = False
+            # app_entry_exists = False
             """ If an app entry doesn't exist create an application entry
                 dictionary and sub-entries. """
             if (app_name and app_name != "unknown" and
@@ -479,9 +482,9 @@ class EventSummaryReport(DataReport):
                         if (_app_event_entry["event_type"] == event_type):
                             # Fetch connection entry and events_list references
                             app_event_entry = _app_event_entry
+                            # Append event_entry to events_list
                             # Is it possible for the events_list to not exist?
                             events_list = app_event_entry["events"]
-                            # Append event_entry to events_list
                             break
                     if app_event_entry:
                         found_event_entry = {}
@@ -540,15 +543,8 @@ class EventSummaryReport(DataReport):
     def _create_event_entry(self, message, connection, domain):
         """ Returns an event_entry dictionary
         """
-        # Fetch message pii_items_found if it exists and convert to list.
-        pii_items_found = message.get("values_found", "")
-        pii_items_list = []
-        if pii_items_found:
-            pii_items_list = (pii_items_found.replace("[", "")).replace("]", "") \
-                .split(",")
-        event_entry = {#"event_type": message["type"]
+        event_entry = {
                        "message": message["text"],
-                       "pii_items_found": pii_items_list,
                        "handler": connection["handler"],
                        "domain": domain
                       }
@@ -648,22 +644,23 @@ class PIIDataReport(DataReport):
                         item_elements = unencrypted_elements
                     elif self.HTTPS_PII_HANDLER in handler:
                         item_elements = encrypted_elements
+
                     # If pii were found add the pii items to the encrypted/
                     # unencrypted items for the current app/domain.
                     if (pii_found_list):
                         # If unencrypted_element exists fetch it
                         if (CAVEAT_PII_QRY_STRING in message_text):
                             item_elements["pii_query_string"] = \
-                                list(set(item_elements["pii_query_string"]
-                                + pii_found_list))
+                                sorted(list(set(item_elements["pii_query_string"]
+                                + pii_found_list)))
                         elif (CAVEAT_PII_HEADER in message_text):
                             item_elements["pii_http_header"] = \
-                                list(set(item_elements["pii_http_header"]
-                                + pii_found_list))
+                                sorted(list(set(item_elements["pii_http_header"]
+                                + pii_found_list)))
                         elif (CAVEAT_PII_MSG_BODY in message_text):
                             item_elements["pii_http_body"] = \
-                                list(set(item_elements["pii_http_body"]
-                                + pii_found_list))
+                                sorted(list(set(item_elements["pii_http_body"]
+                                + pii_found_list)))
                     # If app_domain doesn't exist create it and append to
                     # app_domains list
                     if not app_domain:
@@ -678,6 +675,7 @@ class PIIDataReport(DataReport):
                                 unencrypted_elements, encrypted_elements, \
                                 query_string_count, key_value_count)
                         app_domain_list.append(app_domain)
+
                 except KeyError:
                     # If app_item does not exist in app_pii_dict create it
                     unencrypted_elements = self._create_domain_elements()
@@ -689,11 +687,14 @@ class PIIDataReport(DataReport):
                     # If pii were found add the pii items to the encrypted/
                     # unencrypted items for the current app/domain.
                     if (CAVEAT_PII_QRY_STRING in message_text):
-                        item_elements["pii_query_string"] = pii_found_list
+                        item_elements["pii_query_string"] = \
+                            sorted(pii_found_list)
                     elif (CAVEAT_PII_HEADER in message_text):
-                        item_elements["pii_http_header"] = pii_found_list
+                        item_elements["pii_http_header"] = \
+                            sorted(pii_found_list)
                     elif (CAVEAT_PII_MSG_BODY in message_text):
-                        item_elements["pii_http_body"] = pii_found_list
+                        item_elements["pii_http_body"] = \
+                            sorted(pii_found_list)
                     query_string_count = {}
                     key_value_count = {}
                     # Fetch list of query_strings by app_name and hostname
@@ -730,7 +731,15 @@ class PIIDataReport(DataReport):
                            key_value_count):
         """
         """
+        # Create a list of combined unencrypted and encrypted pii items.
+        combined_pii_items = list(set(unencrypted_elements["pii_query_string"] +
+                                      unencrypted_elements["pii_http_header"] +
+                                      unencrypted_elements["pii_http_body"] +
+                                      encrypted_elements["pii_query_string"] +
+                                      encrypted_elements["pii_http_header"] +
+                                      encrypted_elements["pii_http_body"]))
         app_domain = {"domain": domain,
+                      "all_elements": sorted(combined_pii_items),
                       "unencrypted_elements": unencrypted_elements,
                       "encrypted_elements": encrypted_elements,
                       "unencrypted_query_strings": {
@@ -765,7 +774,6 @@ class PIIDataReport(DataReport):
         """ For the unique query string found add each param/value pair and
             count to the item_count dictionary """
         for qs_key, qs_value in query_strings.iteritems():
-            # print "!!! qs item - " + str(qs)
             qs_key_values = qs_key.split("&")
             qs_count = int(qs_value)
             for key_value in qs_key_values:
@@ -778,6 +786,9 @@ class PIIDataReport(DataReport):
         """ Create a list of (key,value) tuples of duplicate items"""
         item_count_tuples = \
             {k: v for k, v in item_count.iteritems() if int(v) > 1}
+        item_count_tuples = {k: item_count_tuples[k]
+                             for k in sorted(item_count_tuples.keys())}
+        # print "item_count_tuples == " + str(item_count_tuples)
         return item_count_tuples
 
     def _get_domain_querystring_count(self, app_name, hostname):

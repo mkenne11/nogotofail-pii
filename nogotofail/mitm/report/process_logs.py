@@ -20,6 +20,8 @@ limitations under the License.
 
 import abc
 import re
+import json
+
 
 class ProcessLog(object):
     """ Base class used by log processing objects
@@ -34,6 +36,7 @@ class ProcessLog(object):
     def log_dict(self):
         """ Property returns the application log as a dictionary.
         """
+
 
 class ProcessApplicationLog(ProcessLog):
     """ Class processes the application log file (default mitm.log) to extract
@@ -88,8 +91,9 @@ class ProcessApplicationLog(ProcessLog):
                     message_text = re_message_text.search(log_line).group(1) \
                         .strip()
                 except AttributeError:
-                    message_text = re_short_message_text.search(log_line) \
-                        .group(1).strip()
+                    if re_short_message_text.findall(log_line):
+                        message_text = re_short_message_text.search(log_line) \
+                            .group(1).strip()
                     short_message = True
                 values_found = ""
                 try:
@@ -202,81 +206,48 @@ class ProcessEventLog(ProcessLog):
         """ Generator method processes lines from a log file.
             Based on http://stackoverflow.com/questions/30627810/how-to-parse-this-custom-log-file-in-python
         """
-        re_attack_status = re.compile('\"success\"\:\s*\"*([\w\.]+)\"*\,')
-        # re_data = re.compile('\"data\"\:\s*\"*([\w\.\?\/\-\=\&\@\%]+)\"*\,')
-        re_data = re.compile('\"data\"\:\s*\"*([\w\.\?\/\-\_\,\=\&\@\+\:\%\~\!\;\*\#\$]+)\"\,')
-        # re_data_2 = re.compile('\"data\"\:\s*([null]+)\,')
-        re_data_empty = re.compile('\"data\"\:\s*(null)\,|\"data\"\:\s*(\"\s*\")\,')
-        re_client_addr = re.compile('\"client_addr\"\:\s*\"([\d.]+)\"')
-        re_hostname = re.compile('\"hostname\"\:\s*\"([\w._-]+)\"')
-        re_connection_id = re.compile('\"connection_id\"\:\s*\"([\w.-]+)\"')
-        re_application_details = re.compile('\"applications\"\:\s*\[\[\"([\w\.]+)\"\,\s*\"([\w\.]+)')
-        re_application_name = re.compile('\"applications\"\:\s*\[\[\"([\w\.]+)\"\,')
-        re_application_version = re.compile('applications\"\:\s*\[\[\"[\w.]+\"\,\s\"([\d.]+)\"')
-        re_client_port = re.compile('\"client_port\"\:\s*(\d+)')
-        re_handler = re.compile('\"handler\"\:\s*\"*([\w_-]+)\"*')
-        re_server_port = re.compile('\"server_port\"\:\s*\"*(\d+)\"*')
-        re_time = re.compile('\"time\"\:\s*([\d.]+)')
-        re_type = re.compile('\"type\"\:\s*\"*([\w]+)\"*')
-        re_platform_info = re.compile('\"platform_info\"\:\s*\"([\w.:/?&=-]+)\"')
-        re_server_addr = re.compile('\"server_addr\"\:\s*\"([\d.]+)\"')
-        re_installation_id = re.compile('\"installation_id\"\:\s*\"([\w.-]+)\"')
-
         event_log_dict = {}
         line_index = 0
         with open(self.log_path) as f:
             for log_line in f:
+                json_log_line = json.loads(log_line)
                 line_dict = {}
-                # Remove square brackets from log line.
-                # log_line = (log_line.replace("[[", "[")).replace("]]", "]")
-                #print "--- log_line: " + log_line
-                attack_success = re_attack_status.search(log_line).group(1) \
-                    .strip()
-                # If data attribute null or empty set ""
-                if (re_data_empty.search(log_line)):
+                # print "--- log_line: " + log_line
+                attack_success = json_log_line["success"]
+                try:
+                    data = json_log_line["data"].strip()
+                    if not data:
+                        data = ""
+                except (KeyError, AttributeError) as e:
                     data = ""
-                else:
-                    data = re_data.search(log_line).group(1).strip()
-                # print "--- log_data: " + data
-                # except AttributeError:
-                #     data = re_data_2.search(log_line).group(1).strip()
-
-                client_addr = re_client_addr.search(log_line).group(1).strip()
-                # If hostname attribute doesn't exist assign an empty string.
+                client_addr = json_log_line["client_addr"].strip()
                 try:
-                    hostname = re_hostname.search(log_line).group(1).strip()
-                except AttributeError, e:
+                    hostname = json_log_line["hostname"].strip()
+                    domain = hostname
+                except KeyError, e:
                     hostname = ""
-                # Get request domain name
-                domain = self._get_domain_name(hostname, data)
-                connection_id = str(re_connection_id.search(log_line) \
-                    .group(1)).strip()
-                application_details = re_application_details.findall(log_line)
+                    domain = data.split("/", 1)[0]
+                connection_id = json_log_line["connection_id"].strip()
                 try:
-                    application_name = re_application_name.search(log_line) \
-                        .group(1).strip()
-                except AttributeError, e:
+                    applications = json_log_line["applications"]
+                    application_name = applications[0][0].strip()
+                    application_version = applications[0][0].strip()
+                except KeyError, e:
                     application_name = ""
-                try:
-                    application_version = re_application_version.search(log_line) \
-                        .group(1).strip()
-                except AttributeError, e:
                     application_version = ""
-                client_port = re_client_port.search(log_line).group(1).strip()
-                handler = re_handler.search(log_line).group(1).strip()
-                server_port = re_server_port.search(log_line).group(1).strip()
-                entry_time = re_time.search(log_line).group(1).strip()
-                entry_type = re_type.search(log_line).group(1).strip()
+                client_port = json_log_line["client_port"]
+                handler = json_log_line["handler"].strip()
+                server_port = json_log_line["server_port"]
+                entry_time = json_log_line["time"]
+                entry_type = json_log_line["type"].strip()
                 try:
-                    platform_info = re_platform_info.search(log_line).group(1) \
-                        .strip()
-                except AttributeError, e:
+                    platform_info = json_log_line["platform_info"].strip()
+                except KeyError, e:
                     platform_info = ""
-                server_addr = re_server_addr.search(log_line).group(1).strip()
+                server_addr = json_log_line["server_addr"].strip()
                 try:
-                    installation_id = re_installation_id.search(log_line).group(1) \
-                        .strip()
-                except AttributeError, e:
+                    installation_id = json_log_line["installation_id"].strip()
+                except KeyError, e:
                     installation_id = ""
                 attack_entry_dict = {
                                 "handler": str(handler),
